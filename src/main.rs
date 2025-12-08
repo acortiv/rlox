@@ -36,6 +36,10 @@ fn run_prompt() -> Result<(), io::Error> {
 }
 
 fn run(source: &str) {
-    // Filling this in later
-    println!("(running) {}", source);
+    let tokens = scan_tokens(&source);
+    for token in tokens {
+        println!("Current token: {}", token);
+    }
 }
+
+fn 
