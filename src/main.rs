@@ -1,3 +1,7 @@
+mod error;
+
+use crate::error::{HAD_ERROR, error};
+use std::sync::atomic::Ordering;
 use std::{env, fs, io};
 
 fn main() -> Result<(), io::Error> {
@@ -16,6 +20,9 @@ fn main() -> Result<(), io::Error> {
 fn run_file(path: &str) -> Result<(), io::Error> {
     let contents = fs::read_to_string(path)?;
     run(&contents);
+    if HAD_ERROR.load(Ordering::Relaxed) {
+        std::process::exit(65);
+    }
     Ok(())
 }
 
@@ -31,6 +38,7 @@ fn run_prompt() -> Result<(), io::Error> {
             break;
         }
         run(&line);
+        HAD_ERROR.store(false, Ordering::Relaxed);
     }
     Ok(())
 }
@@ -41,5 +49,3 @@ fn run(source: &str) {
         println!("Current token: {}", token);
     }
 }
-
-fn 
