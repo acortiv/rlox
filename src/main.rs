@@ -1,4 +1,5 @@
 mod error;
+mod token;
 
 use crate::error::{HAD_ERROR, error};
 use std::sync::atomic::Ordering;
