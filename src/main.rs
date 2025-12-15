@@ -1,4 +1,5 @@
-use crate::lib::{run_file, run_prompt};
+use rlox::{run_file, run_prompt};
+use std::{env, io};
 
 fn main() -> Result<(), io::Error> {
     let args: Vec<String> = env::args().collect();
