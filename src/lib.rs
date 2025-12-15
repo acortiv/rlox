@@ -1,10 +1,12 @@
-mod error;
+pub mod error;
+pub mod scanner;
+pub mod token;
 
 use crate::error::HAD_ERROR;
 use std::sync::atomic::Ordering;
 use std::{fs, io};
 
-fn run_file(path: &str) -> Result<(), io::Error> {
+pub fn run_file(path: &str) -> Result<(), io::Error> {
     let contents = fs::read_to_string(path)?;
     run(&contents);
     if HAD_ERROR.load(Ordering::Relaxed) {
@@ -13,7 +15,7 @@ fn run_file(path: &str) -> Result<(), io::Error> {
     Ok(())
 }
 
-fn run_prompt() -> Result<(), io::Error> {
+pub fn run_prompt() -> Result<(), io::Error> {
     use std::io::{self, Write};
 
     loop {
