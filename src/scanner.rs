@@ -1,5 +1,6 @@
 use crate::token::{Literal, Token, TokenType};
 
+// Source needs to be made into U8 as Rust uses UTF-8... indexing strings is unsafe and O(n)
 #[derive(Clone, Debug)]
 pub struct Scanner<'a> {
     pub source: &'a str,
