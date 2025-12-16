@@ -2,18 +2,18 @@ use crate::token::{Literal, Token, TokenType};
 
 // Source needs to be made into U8 as Rust uses UTF-8... indexing strings is unsafe and O(n)
 #[derive(Clone, Debug)]
-pub struct Scanner<'a> {
-    pub source: &'a [u8],
-    pub tokens: Vec<Token<'a>>,
+pub struct Scanner {
+    pub source: String,
+    pub tokens: Vec<Token>,
     pub start: usize,
     pub current: usize,
     pub line: usize,
 }
 
-impl<'a> Scanner<'a> {
-    pub fn new(source: &'a [u8]) -> Self {
+impl Scanner {
+    pub fn new(source: String) -> Self {
         Self {
-            source,
+            source: source,
             tokens: Vec::new(),
             start: 0,
             current: 0,
@@ -21,16 +21,15 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn scan_tokens(mut self) -> Vec<Token<'a>> {
+    pub fn scan_tokens(mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token()
         }
 
-        let empty = &self.source[self.current..self.current];
         self.tokens.push(Token {
             ttype: TokenType::EOF,
-            lexeme: empty,
+            lexeme: String::new(),
             literal: Literal::Nil,
             line: self.line,
         });
@@ -58,7 +57,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn advance(&mut self) -> u8 {
-        let char = self.source[self.current];
+        let char = self.source.as_bytes()[self.current];
         self.current += 1;
         char
     }
@@ -68,10 +67,9 @@ impl<'a> Scanner<'a> {
     }
 
     fn add_token_prime(&mut self, t: TokenType, literal: Literal) {
-        let text = &self.source[self.start..self.current];
         self.tokens.push(Token {
             ttype: t,
-            lexeme: text,
+            lexeme: String::new(),
             literal: literal,
             line: self.line,
         });

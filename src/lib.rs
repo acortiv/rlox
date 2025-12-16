@@ -33,8 +33,8 @@ pub fn run_prompt() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn run(source: &str) {
-    let tokens = Scanner::new(source.as_bytes()).scan_tokens();
+fn run(source: String) {
+    let tokens = Scanner::new(source).scan_tokens();
     for token in tokens {
         println!("Current token: {:?}", token);
     }
