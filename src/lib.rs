@@ -34,7 +34,7 @@ pub fn run_prompt() -> Result<(), io::Error> {
 }
 
 fn run(source: &str) {
-    let tokens = Scanner::new(source).scan_tokens();
+    let tokens = Scanner::new(source.as_bytes()).scan_tokens();
     for token in tokens {
         println!("Current token: {:?}", token);
     }
