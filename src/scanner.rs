@@ -37,12 +37,24 @@ impl<'a> Scanner<'a> {
         self.tokens
     }
 
-    fn is_at_end(&self) -> bool {
-        self.current >= self.source.len()
+    fn scan_token(&mut self) {
+        match self.advance() {
+            b'(' => self.add_token(TokenType::LeftParen),
+            b')' => self.add_token(TokenType::RightParen),
+            b'{' => self.add_token(TokenType::LeftBrace),
+            b'}' => self.add_token(TokenType::RightBrace),
+            b',' => self.add_token(TokenType::Comma),
+            b'.' => self.add_token(TokenType::Dot),
+            b'-' => self.add_token(TokenType::Minus),
+            b'+' => self.add_token(TokenType::Plus),
+            b';' => self.add_token(TokenType::Semicolon),
+            b'*' => self.add_token(TokenType::Star),
+            _ => (),
+        }
     }
 
-    fn scan_token(&mut self) {
-        self.current += 1
+    fn is_at_end(&self) -> bool {
+        self.current >= self.source.len()
     }
 
     fn advance(&mut self) -> u8 {
