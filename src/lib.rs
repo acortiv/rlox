@@ -9,7 +9,7 @@ use std::{fs, io};
 
 pub fn run_file(path: &str) -> Result<(), io::Error> {
     let contents = fs::read_to_string(path)?;
-    run(&contents);
+    run(contents);
     if HAD_ERROR.load(Ordering::Relaxed) {
         std::process::exit(65);
     }
@@ -27,7 +27,7 @@ pub fn run_prompt() -> Result<(), io::Error> {
         if io::stdin().read_line(&mut line)? == 0 {
             break;
         }
-        run(&line);
+        run(line);
         HAD_ERROR.store(false, Ordering::Relaxed);
     }
     Ok(())

@@ -21,7 +21,7 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(mut self) -> Vec<Token> {
+    pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token()
@@ -33,7 +33,7 @@ impl Scanner {
             literal: Literal::Nil,
             line: self.line,
         });
-        self.tokens
+        std::mem::take(&mut self.tokens)
     }
 
     fn scan_token(&mut self) {
@@ -67,9 +67,10 @@ impl Scanner {
     }
 
     fn add_token_prime(&mut self, t: TokenType, literal: Literal) {
+        let text = &self.source[self.start..self.current];
         self.tokens.push(Token {
             ttype: t,
-            lexeme: String::new(),
+            lexeme: text.to_string(),
             literal: literal,
             line: self.line,
         });
