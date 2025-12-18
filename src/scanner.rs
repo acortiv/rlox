@@ -1,3 +1,6 @@
+use std::io;
+use std::num::ParseFloatError;
+
 use crate::error::error;
 use crate::token::{Literal, Token, TokenType};
 
@@ -126,6 +129,26 @@ impl Scanner {
         }
         self.current += 1;
         true
+    }
+
+    fn parse_number(&mut self) -> Result<(), ParseFloatError> {
+        while self.is_digit(self.peek()) {
+            self.advance();
+        }
+
+        if self.peek() == b'.' && self.is_digit(self.peek_next()) {
+            self.advance();
+            while self.is_digit(self.peek()) {
+                self.advance();
+            }
+        }
+
+        let text = &self.source[self.start..self.current].parse::<f64>()?;
+        self.add_token_prime(TokenType::Number, Literal::Number(*text));
+    }
+
+    fn is_digit(&self, c: u8) -> bool {
+        c >= b'0' && c <= b'9'
     }
 
     fn peek(&self) -> u8 {
