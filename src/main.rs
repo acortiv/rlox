@@ -1,7 +1,7 @@
-use rlox::{run_file, run_prompt};
-use std::{env, io};
+use rlox::{error::RloxError, run_file, run_prompt};
+use std::env;
 
-fn main() -> Result<(), io::Error> {
+fn main() -> Result<(), RloxError> {
     let args: Vec<String> = env::args().collect();
 
     match args.len() {
