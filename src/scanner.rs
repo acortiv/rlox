@@ -41,7 +41,8 @@ impl Scanner {
     }
 
     fn scan_token(&mut self) {
-        match self.advance() {
+        let c = self.advance();
+        match c {
             b'(' => self.add_token(TokenType::LeftParen),
             b')' => self.add_token(TokenType::RightParen),
             b'{' => self.add_token(TokenType::LeftBrace),
@@ -96,7 +97,13 @@ impl Scanner {
             b' ' | b'\r' | b'\t' => (),
             b'\n' => self.line += 1,
             b'"' => self.parse_string(),
-            _ => error(self.line, "Unexpected character."),
+            _ => {
+                if self.is_digit(c) {
+                    self.parse_number()?
+                } else {
+                    error(self.line, "Unexpected character.")
+                }
+            }
         }
     }
 
@@ -143,8 +150,10 @@ impl Scanner {
             }
         }
 
-        let text = &self.source[self.start..self.current].parse::<f64>()?;
-        self.add_token_prime(TokenType::Number, Literal::Number(*text));
+        let text = &self.source[self.start..self.current];
+        let value: f64 = text.parse()?;
+        self.add_token_prime(TokenType::Number, Literal::Number(value));
+        Ok(())
     }
 
     fn is_digit(&self, c: u8) -> bool {
@@ -158,7 +167,13 @@ impl Scanner {
         self.source.as_bytes()[self.current]
     }
 
-    fn peek_next(&self) -> u8 {}
+    fn peek_next(&self) -> u8 {
+        if self.current + 1 >= self.source.len() {
+            return b'\0';
+        }
+        let i = self.current + 1;
+        self.source.as_bytes()[i]
+    }
 
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
