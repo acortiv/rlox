@@ -2,7 +2,7 @@ pub mod error;
 pub mod scanner;
 pub mod token;
 
-use crate::error::HAD_ERROR;
+use crate::error::{HAD_ERROR, RloxError};
 use crate::scanner::Scanner;
 use std::sync::atomic::Ordering;
 use std::{fs, io};
@@ -16,12 +16,12 @@ pub fn run_file(path: &str) -> Result<(), io::Error> {
     Ok(())
 }
 
-pub fn run_prompt() -> Result<(), io::Error> {
+pub fn run_prompt() -> Result<(), RloxError> {
     use std::io::{self, Write};
 
     loop {
         print!("> ");
-        io::stdout().flush()?;
+        io::stdout().flush();
 
         let mut line = String::new();
         if io::stdin().read_line(&mut line)? == 0 {
@@ -33,9 +33,9 @@ pub fn run_prompt() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn run(source: String) {
-    let tokens = Scanner::new(source).scan_tokens();
-    for token in tokens {
-        println!("Current token: {:?}", token);
-    }
+fn run(source: String) -> Result<(), RloxError> {
+    let tokens = Scanner::new(source).scan_tokens()?;
+    // for token in tokens {
+    //     println!("Current token: {:?}", token);
+    // }
 }

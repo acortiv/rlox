@@ -1,8 +1,7 @@
-use std::io;
-use std::num::ParseFloatError;
-
-use crate::error::error;
+use crate::error::ScannerError;
 use crate::token::{Literal, Token, TokenType};
+
+type Result<T> = std::result::Result<T, ScannerError>;
 
 // Source needs to be made into U8 as Rust uses UTF-8... indexing strings is unsafe and O(n)
 #[derive(Clone, Debug)]
@@ -25,10 +24,10 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Vec<Token> {
+    pub fn scan_tokens(&mut self) -> Result<Vec<Token>> {
         while !self.is_at_end() {
             self.start = self.current;
-            self.scan_token()
+            self.scan_token()?;
         }
 
         self.tokens.push(Token {
@@ -37,10 +36,10 @@ impl Scanner {
             literal: Literal::Nil,
             line: self.line,
         });
-        std::mem::take(&mut self.tokens)
+        Ok(std::mem::take(&mut self.tokens))
     }
 
-    fn scan_token(&mut self) {
+    fn scan_token(&mut self) -> Result<()> {
         let c = self.advance();
         match c {
             b'(' => self.add_token(TokenType::LeftParen),
@@ -90,24 +89,31 @@ impl Scanner {
                     while self.peek() != b'\n' && !self.is_at_end() {
                         self.advance();
                     }
+                    Ok(())
                 } else {
                     self.add_token(TokenType::Slash)
                 }
             }
-            b' ' | b'\r' | b'\t' => (),
-            b'\n' => self.line += 1,
+            b' ' | b'\r' | b'\t' => Ok(()),
+            b'\n' => {
+                self.line += 1;
+                Ok(())
+            }
             b'"' => self.parse_string(),
             _ => {
                 if self.is_digit(c) {
-                    self.parse_number()?
+                    self.parse_number()
                 } else {
-                    error(self.line, "Unexpected character.")
+                    return Err(ScannerError::UnexpectedCharacter {
+                        line: self.line,
+                        character: c as char,
+                    });
                 }
             }
         }
     }
 
-    fn parse_string(&mut self) {
+    fn parse_string(&mut self) -> Result<()> {
         while self.peek() != b'"' && !self.is_at_end() {
             if self.peek() == b'\n' {
                 self.line += 1
@@ -116,15 +122,16 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            error(self.line, "Unterminated string.");
-            return;
+            return Err(ScannerError::UnterminatedString { line: self.line });
         }
 
         self.advance();
-        let start = &self.start + 1;
-        let end = &self.current - 1;
+        let start = self.start + 1;
+        let end = self.current - 1;
         let text = &self.source[start..end];
-        self.add_token_prime(TokenType::String, Literal::Str(text.to_string()))
+        self.add_token_prime(TokenType::String, Literal::Str(text.to_string()))?;
+
+        Ok(())
     }
 
     fn match_char(&mut self, expected: u8) -> bool {
@@ -138,7 +145,7 @@ impl Scanner {
         true
     }
 
-    fn parse_number(&mut self) -> Result<(), ParseFloatError> {
+    fn parse_number(&mut self) -> Result<()> {
         while self.is_digit(self.peek()) {
             self.advance();
         }
@@ -152,7 +159,7 @@ impl Scanner {
 
         let text = &self.source[self.start..self.current];
         let value: f64 = text.parse()?;
-        self.add_token_prime(TokenType::Number, Literal::Number(value));
+        self.add_token_prime(TokenType::Number, Literal::Number(value))?;
         Ok(())
     }
 
@@ -185,11 +192,11 @@ impl Scanner {
         char
     }
 
-    fn add_token(&mut self, t: TokenType) {
+    fn add_token(&mut self, t: TokenType) -> Result<()> {
         self.add_token_prime(t, Literal::Nil)
     }
 
-    fn add_token_prime(&mut self, t: TokenType, literal: Literal) {
+    fn add_token_prime(&mut self, t: TokenType, literal: Literal) -> Result<()> {
         let text = &self.source[self.start..self.current];
         self.tokens.push(Token {
             ttype: t,
@@ -197,5 +204,7 @@ impl Scanner {
             literal: literal,
             line: self.line,
         });
+
+        Ok(())
     }
 }
