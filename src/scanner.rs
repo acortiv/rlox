@@ -158,6 +158,8 @@ impl Scanner {
         self.source.as_bytes()[self.current]
     }
 
+    fn peek_next(&self) -> u8 {}
+
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }
