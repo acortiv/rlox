@@ -57,17 +57,17 @@ pub enum Literal {
 }
 
 #[derive(Clone, Debug)]
-pub struct Token<'a> {
+pub struct Token {
     pub ttype: TokenType,
-    pub lexeme: &'a [u8],
+    pub lexeme: String,
     pub literal: Literal,
     pub line: usize,
 }
 
-impl<'a> Token<'a> {
+impl Token {
     pub fn show(&self) -> String {
         format!(
-            "line:{}, ttype{:?}, lexeme:{:?}, literal:{:?}",
+            "line:{}, ttype{:?}, lexeme:{}, literal:{:?}",
             self.line, self.ttype, self.lexeme, self.literal
         )
     }
