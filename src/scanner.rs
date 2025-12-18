@@ -104,10 +104,10 @@ impl Scanner {
                 if self.is_digit(c) {
                     self.parse_number()
                 } else {
-                    return Err(ScannerError::UnexpectedCharacter {
+                    return Err(ScannerError::new(ScannerError::UnexpectedCharacter {
                         line: self.line,
                         character: c as char,
-                    });
+                    }));
                 }
             }
         }
@@ -122,7 +122,9 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            return Err(ScannerError::UnterminatedString { line: self.line });
+            return Err(ScannerError::new(ScannerError::UnterminatedString {
+                line: self.line,
+            }));
         }
 
         self.advance();
