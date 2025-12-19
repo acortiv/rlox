@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub enum TokenType {
     // Single-character tokens
@@ -56,12 +58,33 @@ pub enum Literal {
     Nil,
 }
 
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Literal::Identifier(string) => write!(f, "Identifier: {string}"),
+            Literal::Str(string) => write!(f, "String: {string}"),
+            Literal::Number(num) => write!(f, "Number: {num}"),
+            Literal::Nil => write!(f, "Nil"),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Token {
     pub ttype: TokenType,
     pub lexeme: String,
     pub literal: Literal,
     pub line: usize,
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Token Type: {:#?}, Lexeme: {}, Literal: {:#?}, Line: {}",
+            self.ttype, self.lexeme, self.literal, self.line
+        )
+    }
 }
 
 impl Token {
