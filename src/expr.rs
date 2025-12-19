@@ -1,0 +1,68 @@
+use std::fmt;
+
+use crate::token::{Literal, Token};
+
+#[derive(Clone, Debug)]
+pub enum Expr {
+    Binary {
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
+    },
+    Grouping(Box<Expr>),
+    Literal(Literal),
+    Unary {
+        operator: Token,
+        right: Box<Expr>,
+    },
+}
+
+impl fmt::Display for Expr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Expr::Binary {
+                left,
+                operator,
+                right,
+            } => {
+                write!(f, "({}, {}, {})", left, operator, right)
+            }
+            Expr::Grouping(expr) => write!(f, "(group {})", expr),
+            Expr::Literal(literal) => write!(f, "{literal}"),
+            Expr::Unary { operator, right } => {
+                write!(f, "({}, {})", operator, right)
+            }
+        }
+    }
+}
+
+pub fn pretty_expr(expr: &Expr, indent: usize) -> String {
+    let pad = " ".repeat(indent);
+    match expr {
+        Expr::Binary {
+            left,
+            operator,
+            right,
+        } => {
+            format!(
+                "{}Binary({})\n{}{}\n{}{}",
+                pad,
+                operator.lexeme,
+                pretty_expr(left, indent + 1),
+                pad,
+                pretty_expr(right, indent + 1),
+                pad
+            )
+        }
+        Expr::Literal(literal) => format!("{}Literal{}", pad, literal),
+        Expr::Unary { operator, right } => {
+            format!(
+                "{}Unary({})\n{}",
+                pad,
+                operator.lexeme,
+                pretty_expr(right, indent + 1)
+            )
+        }
+        Expr::Grouping(inner) => format!("{}Group\n{}", pad, pretty_expr(inner, indent + 1)),
+    }
+}
