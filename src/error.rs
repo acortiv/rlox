@@ -40,6 +40,7 @@ pub enum ScannerError {
     ParseFloat(ParseFloatError),
     UnterminatedString { line: usize },
     UnexpectedCharacter { line: usize, character: char },
+    UnterminatedBlockComment { line: usize },
 }
 
 impl ScannerError {
@@ -56,10 +57,13 @@ impl fmt::Display for ScannerError {
                 write!(f, "ParseFloatError: {}", e)
             }
             ScannerError::UnterminatedString { line } => {
-                write!(f, "[line {}] Unterminated String.", line)
+                write!(f, "[line {}] Unterminated string.", line)
             }
             ScannerError::UnexpectedCharacter { line, character } => {
                 write!(f, "[line{}] Unexpected character: '{}'", line, character)
+            }
+            ScannerError::UnterminatedBlockComment { line } => {
+                write!(f, "[line {}] Unterminated block comment.", line)
             }
         }
     }

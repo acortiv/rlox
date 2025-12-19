@@ -111,6 +111,8 @@ impl Scanner {
                         self.advance();
                     }
                     Ok(())
+                } else if self.match_char(b'*') {
+                    self.parse_block_comment()
                 } else {
                     self.add_token(TokenType::Slash)
                 }
@@ -128,6 +130,29 @@ impl Scanner {
                 character: c as char,
             })),
         }
+    }
+
+    fn parse_block_comment(&mut self) -> Result<()> {
+        let mut depth = 1;
+
+        while depth > 0 {
+            if self.is_at_end() {
+                return Err(ScannerError::new(ScannerError::UnterminatedBlockComment {
+                    line: self.line,
+                }));
+            }
+
+            let c = self.advance();
+
+            match c {
+                b'/' if self.match_char(b'*') => depth += 1,
+                b'*' if self.match_char(b'/') => depth -= 1,
+                b'\n' => self.line += 1,
+                _ => {}
+            }
+        }
+
+        Ok(())
     }
 
     fn parse_string(&mut self) -> Result<()> {
