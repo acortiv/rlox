@@ -3,6 +3,28 @@ use crate::token::{Literal, Token, TokenType};
 
 type Result<T> = std::result::Result<T, ScannerError>;
 
+fn keyword_capture(ident: &str) -> Option<TokenType> {
+    match ident {
+        "and" => Some(TokenType::And),
+        "class" => Some(TokenType::Class),
+        "else" => Some(TokenType::Else),
+        "false" => Some(TokenType::False),
+        "for" => Some(TokenType::For),
+        "fun" => Some(TokenType::Fun),
+        "if" => Some(TokenType::If),
+        "nil" => Some(TokenType::Nil),
+        "or" => Some(TokenType::Or),
+        "print" => Some(TokenType::Print),
+        "return" => Some(TokenType::Return),
+        "super" => Some(TokenType::Super),
+        "this" => Some(TokenType::This),
+        "true" => Some(TokenType::True),
+        "var" => Some(TokenType::Var),
+        "while" => Some(TokenType::While),
+        _ => None,
+    }
+}
+
 // Source needs to be made into U8 as Rust uses UTF-8... indexing strings is unsafe and O(n)
 #[derive(Clone, Debug)]
 pub struct Scanner {
@@ -40,8 +62,7 @@ impl Scanner {
     }
 
     fn scan_token(&mut self) -> Result<()> {
-        let c = self.advance();
-        match c {
+        match self.advance() {
             b'(' => self.add_token(TokenType::LeftParen),
             b')' => self.add_token(TokenType::RightParen),
             b'{' => self.add_token(TokenType::LeftBrace),
@@ -100,16 +121,12 @@ impl Scanner {
                 Ok(())
             }
             b'"' => self.parse_string(),
-            _ => {
-                if self.is_digit(c) {
-                    self.parse_number()
-                } else {
-                    return Err(ScannerError::new(ScannerError::UnexpectedCharacter {
-                        line: self.line,
-                        character: c as char,
-                    }));
-                }
-            }
+            c if self.is_digit(c) => self.parse_number(),
+            c if self.is_alpha(c) => self.parse_identifier(),
+            c => Err(ScannerError::new(ScannerError::UnexpectedCharacter {
+                line: self.line,
+                character: c as char,
+            })),
         }
     }
 
@@ -167,6 +184,27 @@ impl Scanner {
 
     fn is_digit(&self, c: u8) -> bool {
         c >= b'0' && c <= b'9'
+    }
+
+    fn parse_identifier(&mut self) -> Result<()> {
+        while self.is_alpha_numeric(self.peek()) {
+            self.advance();
+        }
+
+        let text = &self.source[self.start..self.current];
+        if let Some(token_type) = keyword_capture(text) {
+            self.add_token(token_type)
+        } else {
+            self.add_token(TokenType::Identifier)
+        }
+    }
+
+    fn is_alpha(&self, c: u8) -> bool {
+        matches!(c, b'a'..=b'z' | b'A'..=b'Z' | b'_')
+    }
+
+    fn is_alpha_numeric(&self, c: u8) -> bool {
+        self.is_alpha(c) || self.is_digit(c)
     }
 
     fn peek(&self) -> u8 {
