@@ -35,7 +35,7 @@ impl fmt::Display for Expr {
     }
 }
 
-/// Pretty print an expression as an indented tree
+/// Pretty-print an expression as an indented tree
 ///
 /// # Example
 ///
