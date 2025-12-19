@@ -36,6 +36,36 @@ impl fmt::Display for Expr {
     }
 }
 
+/// Pretty print an expression as an indented tree
+///
+/// # Example
+///
+/// ````
+/// let expr = Expr::Binary {
+///         left: Box::new(Expr::Unary {
+///             operator: rlox::token::Token {
+///                 ttype: rlox::token::TokenType::Minus,
+///                 lexeme: String::from("-"),
+///                 literal: rlox::token::Literal::Nil,
+///                 line: 1,
+///             },
+///             right: Box::new(Expr::Literal(rlox::token::Literal::Number(123.0))),
+///         }),
+///         operator: rlox::token::Token {
+///             ttype: rlox::token::TokenType::Star,
+///             lexeme: String::from("*"),
+///             literal: rlox::token::Literal::Nil,
+///             line: 1,
+///         },
+///         right: Box::new(Expr::Grouping(Box::new(Expr::Literal(
+///             rlox::token::Literal::Number(45.67),
+///         )))),
+///     };
+
+/// let expr_string = pretty_expr(&expr, 0);
+/// println!("{}", expr_string);
+/// ```
+
 pub fn pretty_expr(expr: &Expr, indent: usize) -> String {
     let pad = " ".repeat(indent);
     match expr {
