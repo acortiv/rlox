@@ -1,5 +1,7 @@
-use crate::error::ScannerError;
-use crate::token::{Literal, Token, TokenType};
+use crate::{
+    error::ScannerError,
+    token::{Literal, Token, TokenType},
+};
 
 type Result<T> = std::result::Result<T, ScannerError>;
 

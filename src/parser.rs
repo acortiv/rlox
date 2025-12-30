@@ -1,7 +1,10 @@
 use crate::{
+    error::ParserError,
     expr::Expr,
-    token::{Token, TokenType},
+    token::{Literal, Token, TokenType},
 };
+
+type Result<T> = std::result::Result<T, ParserError>;
 
 #[derive(Clone, Debug)]
 pub struct Parser {
@@ -17,16 +20,16 @@ impl Parser {
         }
     }
 
-    fn expression(&mut self) -> Expr {
+    fn expression(&mut self) -> Result<Expr> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Expr {
-        let mut expr = self.comparison();
+    fn equality(&mut self) -> Result<Expr> {
+        let mut expr = self.comparison()?;
         let potential_tokens: [TokenType; 2] = [TokenType::BangEqual, TokenType::EqualEqual];
         while self.match_token(&potential_tokens) {
             let operator = self.previous().clone();
-            let right = self.comparison();
+            let right = self.comparison()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator: operator,
@@ -34,11 +37,11 @@ impl Parser {
             }
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn comparison(&mut self) -> Expr {
-        let mut expr = self.term();
+    fn comparison(&mut self) -> Result<Expr> {
+        let mut expr = self.term()?;
         let potential_tokens: [TokenType; 4] = [
             TokenType::Greater,
             TokenType::GreaterEqual,
@@ -47,7 +50,7 @@ impl Parser {
         ];
         while self.match_token(&potential_tokens) {
             let operator = self.previous().clone();
-            let right = self.term();
+            let right = self.term()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator: operator,
@@ -55,15 +58,15 @@ impl Parser {
             }
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn term(&mut self) -> Expr {
-        let mut expr = self.factor();
+    fn term(&mut self) -> Result<Expr> {
+        let mut expr = self.factor()?;
         let potential_tokens: [TokenType; 2] = [TokenType::Minus, TokenType::Plus];
         while self.match_token(&potential_tokens) {
             let operator = self.previous().clone();
-            let right = self.factor();
+            let right = self.factor()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator: operator,
@@ -71,15 +74,15 @@ impl Parser {
             }
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn factor(&mut self) -> Expr {
-        let mut expr = self.unary();
+    fn factor(&mut self) -> Result<Expr> {
+        let mut expr = self.unary()?;
         let potential_tokens: [TokenType; 2] = [TokenType::Slash, TokenType::Star];
         while self.match_token(&potential_tokens) {
             let operator = self.previous().clone();
-            let right = self.unary();
+            let right = self.unary()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
                 operator: operator,
@@ -87,25 +90,57 @@ impl Parser {
             }
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn unary(&mut self) -> Expr {
+    fn unary(&mut self) -> Result<Expr> {
         let potential_tokens: [TokenType; 2] = [TokenType::Bang, TokenType::Minus];
         if self.match_token(&potential_tokens) {
             let operator = self.previous().clone();
-            let right = self.unary();
-            return Expr::Unary {
+            let right = self.unary()?;
+            return Ok(Expr::Unary {
                 operator: operator,
                 right: Box::new(right),
-            };
+            });
         }
 
         self.primary()
     }
 
     // TODO: Implement Error Handling.  Parser Errors being UnexpectedToken & UnterminatedGroup
-    // fn primary(&mut self) -> Expr {}
+    fn primary(&mut self) -> Result<Expr> {
+        if self.match_token(&[TokenType::False]) {
+            return Ok(Expr::Literal(Literal::Bool(false)));
+        }
+
+        if self.match_token(&[TokenType::True]) {
+            return Ok(Expr::Literal(Literal::Bool(true)));
+        }
+
+        if self.match_token(&[TokenType::Number]) {
+            if let Literal::Number(n) = &self.previous().literal {
+                return Ok(Expr::Literal(Literal::Number(*n)));
+            }
+            unreachable!("Number token without number literal.")
+        }
+
+        if self.match_token(&[TokenType::String]) {
+            if let Literal::Str(s) = &self.previous().literal {
+                return Ok(Expr::Literal(Literal::Str(s.clone())));
+            }
+            unreachable!("String token without string literal.")
+        }
+
+        if self.match_token(&[TokenType::LeftParen]) {
+            let mut expr = self.expression();
+            self.consume(TokenType::RightParen);
+            return Ok(Expr::Grouping(Box::new(expr)));
+        }
+
+        Err(ParserError::new(ParserError::UnexpectedCharacter(
+            self.peek().clone(),
+        )))
+    }
 
     fn match_token(&mut self, types: &[TokenType]) -> bool {
         for &t in types {

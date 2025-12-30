@@ -2,6 +2,8 @@ use std::fmt;
 use std::sync::atomic::Ordering;
 use std::{num::ParseFloatError, sync::atomic::AtomicBool};
 
+use crate::token::Token;
+
 pub static HAD_ERROR: AtomicBool = AtomicBool::new(false);
 
 // Top-Level Error
@@ -60,7 +62,7 @@ impl fmt::Display for ScannerError {
                 write!(f, "[line {}] Unterminated string.", line)
             }
             ScannerError::UnexpectedCharacter { line, character } => {
-                write!(f, "[line{}] Unexpected character: '{}'", line, character)
+                write!(f, "[line {}] Unexpected character: '{}'", line, character)
             }
             ScannerError::UnterminatedBlockComment { line } => {
                 write!(f, "[line {}] Unterminated block comment.", line)
@@ -76,3 +78,36 @@ impl From<ParseFloatError> for ScannerError {
         ScannerError::ParseFloat(error)
     }
 }
+
+// Parser Error
+#[derive(Debug)]
+pub enum ParserError {
+    UnexpectedCharacter(Token),
+    UnterminatedGroup(Token),
+}
+
+impl ParserError {
+    pub fn new(err: Self) -> Self {
+        HAD_ERROR.store(true, Ordering::Relaxed);
+        err
+    }
+}
+
+impl fmt::Display for ParserError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParserError::UnexpectedCharacter(e) => {
+                write!(f, "[line {}] Unexpected Character at {}.", e.line, e.lexeme)
+            }
+            ParserError::UnterminatedGroup(e) => {
+                write!(
+                    f,
+                    "[line {}] Unterminated grouping at {}.",
+                    e.line, e.lexeme
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for ParserError {}

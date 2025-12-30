@@ -55,6 +55,7 @@ pub enum Literal {
     Identifier(String),
     Str(String),
     Number(f64),
+    Bool(bool),
     Nil,
 }
 
@@ -64,6 +65,7 @@ impl fmt::Display for Literal {
             Literal::Identifier(string) => write!(f, "Identifier: {string}"),
             Literal::Str(string) => write!(f, "String: {string}"),
             Literal::Number(num) => write!(f, "Number: {num}"),
+            Literal::Bool(bool) => write!(f, "Boolean: {bool}")
             Literal::Nil => write!(f, "Nil"),
         }
     }
