@@ -207,14 +207,14 @@ impl Parser {
             }
 
             match self.peek().ttype {
-                TokenType::Class => return,
-                TokenType::For => return,
-                TokenType::Fun => return,
-                TokenType::If => return,
-                TokenType::Print => return,
-                TokenType::Return => return,
-                TokenType::Var => return,
-                TokenType::While => return,
+                TokenType::Class
+                | TokenType::For
+                | TokenType::Fun
+                | TokenType::If
+                | TokenType::Print
+                | TokenType::Return
+                | TokenType::While
+                | TokenType::Var => return,
                 _ => {}
             }
 
