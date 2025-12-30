@@ -12,6 +12,7 @@ pub fn run_file(path: &str) -> Result<(), RloxError> {
     if had_error {
         std::process::exit(65);
     }
+
     Ok(())
 }
 
@@ -31,6 +32,7 @@ pub fn run_prompt() -> Result<(), RloxError> {
             eprintln!("{err}");
         };
     }
+
     Ok(())
 }
 
@@ -39,6 +41,7 @@ fn run(source: String) -> Result<bool, RloxError> {
     let Some(expr) = Parser::new(tokens).parse() else {
         return Ok(false);
     };
+
     println!("{}", pretty_expr(&expr, 0));
     Ok(true)
 }
