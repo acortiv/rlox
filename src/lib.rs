@@ -26,7 +26,10 @@ pub fn run_prompt() -> Result<(), RloxError> {
         if io::stdin().read_line(&mut line)? == 0 {
             break;
         }
-        run(line)?;
+
+        if let Err(err) = run(line) {
+            eprintln!("{err}");
+        };
     }
     Ok(())
 }
