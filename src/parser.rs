@@ -199,26 +199,26 @@ impl Parser {
         &self.tokens[self.current - 1]
     }
 
-    fn synchronize(&mut self) {
-        self.advance();
-        while !self.is_at_end() {
-            if self.previous().ttype == TokenType::Semicolon {
-                return;
-            }
+    // fn synchronize(&mut self) {
+    //     self.advance();
+    //     while !self.is_at_end() {
+    //         if self.previous().ttype == TokenType::Semicolon {
+    //             return;
+    //         }
 
-            match self.peek().ttype {
-                TokenType::Class
-                | TokenType::For
-                | TokenType::Fun
-                | TokenType::If
-                | TokenType::Print
-                | TokenType::Return
-                | TokenType::While
-                | TokenType::Var => return,
-                _ => {}
-            }
+    //         match self.peek().ttype {
+    //             TokenType::Class
+    //             | TokenType::For
+    //             | TokenType::Fun
+    //             | TokenType::If
+    //             | TokenType::Print
+    //             | TokenType::Return
+    //             | TokenType::While
+    //             | TokenType::Var => return,
+    //             _ => {}
+    //         }
 
-            self.advance();
-        }
-    }
+    //         self.advance();
+    //     }
+    // }
 }
