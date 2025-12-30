@@ -1,5 +1,5 @@
 use crate::{
-    error::ScannerError,
+    error::{ScannerError, report},
     token::{Literal, Token, TokenType},
 };
 
@@ -127,10 +127,14 @@ impl Scanner {
             b'"' => self.parse_string(),
             c if self.is_digit(c) => self.parse_number(),
             c if self.is_alpha(c) => self.parse_identifier(),
-            c => Err(ScannerError::new(ScannerError::UnexpectedCharacter {
-                line: self.line,
-                character: c as char,
-            })),
+            c => {
+                let err = ScannerError::UnexpectedCharacter {
+                    line: self.line,
+                    character: c as char,
+                };
+                report(&err);
+                Err(err)
+            }
         }
     }
 
@@ -139,9 +143,9 @@ impl Scanner {
 
         while depth > 0 {
             if self.is_at_end() {
-                return Err(ScannerError::new(ScannerError::UnterminatedBlockComment {
-                    line: self.line,
-                }));
+                let err = ScannerError::UnterminatedBlockComment { line: self.line };
+                report(&err);
+                return Err(err);
             }
 
             let c = self.advance();
@@ -166,9 +170,9 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            return Err(ScannerError::new(ScannerError::UnterminatedString {
-                line: self.line,
-            }));
+            let err = ScannerError::UnterminatedString { line: self.line };
+            report(&err);
+            return Err(err);
         }
 
         self.advance();

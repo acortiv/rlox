@@ -1,5 +1,5 @@
 use crate::{
-    error::ParserError,
+    error::{ParserError, report},
     expr::Expr,
     token::{Literal, Token, TokenType},
 };
@@ -18,6 +18,14 @@ impl Parser {
             tokens: tokens,
             current: 0,
         }
+    }
+
+    pub fn parse(&mut self) -> Option<Expr> {
+        let Ok(expr) = self.expression() else {
+            return None;
+        };
+
+        Some(expr)
     }
 
     fn expression(&mut self) -> Result<Expr> {
@@ -132,14 +140,14 @@ impl Parser {
         }
 
         if self.match_token(&[TokenType::LeftParen]) {
-            let mut expr = self.expression();
-            self.consume(TokenType::RightParen);
+            let expr = self.expression()?;
+            let _ = self.consume(TokenType::RightParen)?;
             return Ok(Expr::Grouping(Box::new(expr)));
         }
 
-        Err(ParserError::new(ParserError::UnexpectedCharacter(
-            self.peek().clone(),
-        )))
+        let err = ParserError::UnexpectedToken(self.peek().clone());
+        report(&err);
+        Err(err)
     }
 
     fn match_token(&mut self, types: &[TokenType]) -> bool {
@@ -149,7 +157,18 @@ impl Parser {
                 return true;
             }
         }
+
         false
+    }
+
+    fn consume(&mut self, t: TokenType) -> Result<&Token> {
+        if self.check(t) {
+            return Ok(self.advance());
+        }
+
+        let err = ParserError::UnterminatedGroup(self.peek().clone());
+        report(&err);
+        Err(err)
     }
 
     fn check(&self, t: TokenType) -> bool {
@@ -178,5 +197,28 @@ impl Parser {
 
     fn previous(&self) -> &Token {
         &self.tokens[self.current - 1]
+    }
+
+    fn synchronize(&mut self) {
+        self.advance();
+        while !self.is_at_end() {
+            if self.previous().ttype == TokenType::Semicolon {
+                return;
+            }
+
+            match self.peek().ttype {
+                TokenType::Class => return,
+                TokenType::For => return,
+                TokenType::Fun => return,
+                TokenType::If => return,
+                TokenType::Print => return,
+                TokenType::Return => return,
+                TokenType::Var => return,
+                TokenType::While => return,
+                _ => {}
+            }
+
+            self.advance();
+        }
     }
 }

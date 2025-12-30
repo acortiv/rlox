@@ -3,16 +3,13 @@ pub mod expr;
 pub mod parser;
 pub mod scanner;
 pub mod token;
-
-use crate::error::{HAD_ERROR, RloxError};
-use crate::scanner::Scanner;
+use crate::{error::RloxError, expr::pretty_expr, parser::Parser, scanner::Scanner};
 use std::fs;
-use std::sync::atomic::Ordering;
 
 pub fn run_file(path: &str) -> Result<(), RloxError> {
     let contents = fs::read_to_string(path)?;
-    run(contents)?;
-    if HAD_ERROR.load(Ordering::Relaxed) {
+    let had_error = run(contents)?;
+    if had_error {
         std::process::exit(65);
     }
     Ok(())
@@ -30,15 +27,15 @@ pub fn run_prompt() -> Result<(), RloxError> {
             break;
         }
         run(line)?;
-        HAD_ERROR.store(false, Ordering::Relaxed);
     }
     Ok(())
 }
 
-fn run(source: String) -> Result<(), RloxError> {
+fn run(source: String) -> Result<bool, RloxError> {
     let tokens = Scanner::new(source).scan_tokens()?;
-    for token in tokens {
-        println!("Current token: {:?}", token);
-    }
-    Ok(())
+    let Some(expr) = Parser::new(tokens).parse() else {
+        return Ok(false);
+    };
+    println!("{}", pretty_expr(&expr, 0));
+    Ok(true)
 }

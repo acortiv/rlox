@@ -1,16 +1,18 @@
 use std::fmt;
-use std::sync::atomic::Ordering;
-use std::{num::ParseFloatError, sync::atomic::AtomicBool};
+use std::num::ParseFloatError;
 
 use crate::token::Token;
 
-pub static HAD_ERROR: AtomicBool = AtomicBool::new(false);
+pub fn report<E: fmt::Display>(err: &E) {
+    eprintln!("{}", err);
+}
 
 // Top-Level Error
 #[derive(Debug)]
 pub enum RloxError {
     Io(std::io::Error),
     Scanner(ScannerError),
+    Parser(ParserError),
 }
 
 impl fmt::Display for RloxError {
@@ -18,6 +20,7 @@ impl fmt::Display for RloxError {
         match self {
             RloxError::Io(err) => write!(f, "IO error: {}", err),
             RloxError::Scanner(err) => write!(f, "Scanner error: {}", err),
+            RloxError::Parser(err) => write!(f, "Parser error: {}", err),
         }
     }
 }
@@ -43,13 +46,6 @@ pub enum ScannerError {
     UnterminatedString { line: usize },
     UnexpectedCharacter { line: usize, character: char },
     UnterminatedBlockComment { line: usize },
-}
-
-impl ScannerError {
-    pub fn new(err: Self) -> Self {
-        HAD_ERROR.store(true, Ordering::Relaxed);
-        err
-    }
 }
 
 impl fmt::Display for ScannerError {
@@ -82,28 +78,21 @@ impl From<ParseFloatError> for ScannerError {
 // Parser Error
 #[derive(Debug)]
 pub enum ParserError {
-    UnexpectedCharacter(Token),
+    UnexpectedToken(Token),
     UnterminatedGroup(Token),
-}
-
-impl ParserError {
-    pub fn new(err: Self) -> Self {
-        HAD_ERROR.store(true, Ordering::Relaxed);
-        err
-    }
 }
 
 impl fmt::Display for ParserError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ParserError::UnexpectedCharacter(e) => {
-                write!(f, "[line {}] Unexpected Character at {}.", e.line, e.lexeme)
+            ParserError::UnexpectedToken(e) => {
+                write!(f, "[line {}] Unexpected Token at {}.", e.line, e.lexeme)
             }
             ParserError::UnterminatedGroup(e) => {
                 write!(
                     f,
-                    "[line {}] Unterminated grouping at {}.",
-                    e.line, e.lexeme
+                    "[line {}] Unterminated Grouping.  Expect ')' after expression.",
+                    e.line
                 )
             }
         }
