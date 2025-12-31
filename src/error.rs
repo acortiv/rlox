@@ -1,14 +1,18 @@
 use std::fmt;
-use std::sync::atomic::Ordering;
-use std::{num::ParseFloatError, sync::atomic::AtomicBool};
+use std::num::ParseFloatError;
 
-pub static HAD_ERROR: AtomicBool = AtomicBool::new(false);
+use crate::token::Token;
+
+pub fn report<E: fmt::Display>(err: &E) {
+    eprintln!("{}", err);
+}
 
 // Top-Level Error
 #[derive(Debug)]
 pub enum RloxError {
     Io(std::io::Error),
     Scanner(ScannerError),
+    Parser(ParserError),
 }
 
 impl fmt::Display for RloxError {
@@ -16,6 +20,7 @@ impl fmt::Display for RloxError {
         match self {
             RloxError::Io(err) => write!(f, "IO error: {}", err),
             RloxError::Scanner(err) => write!(f, "Scanner error: {}", err),
+            RloxError::Parser(err) => write!(f, "Parser error: {}", err),
         }
     }
 }
@@ -43,13 +48,6 @@ pub enum ScannerError {
     UnterminatedBlockComment { line: usize },
 }
 
-impl ScannerError {
-    pub fn new(err: Self) -> Self {
-        HAD_ERROR.store(true, Ordering::Relaxed);
-        err
-    }
-}
-
 impl fmt::Display for ScannerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -60,7 +58,7 @@ impl fmt::Display for ScannerError {
                 write!(f, "[line {}] Unterminated string.", line)
             }
             ScannerError::UnexpectedCharacter { line, character } => {
-                write!(f, "[line{}] Unexpected character: '{}'", line, character)
+                write!(f, "[line {}] Unexpected character: '{}'", line, character)
             }
             ScannerError::UnterminatedBlockComment { line } => {
                 write!(f, "[line {}] Unterminated block comment.", line)
@@ -76,3 +74,29 @@ impl From<ParseFloatError> for ScannerError {
         ScannerError::ParseFloat(error)
     }
 }
+
+// Parser Error
+#[derive(Debug)]
+pub enum ParserError {
+    UnexpectedToken(Token),
+    UnterminatedGroup(Token),
+}
+
+impl fmt::Display for ParserError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParserError::UnexpectedToken(e) => {
+                write!(f, "[line {}] Unexpected Token at {}.", e.line, e.lexeme)
+            }
+            ParserError::UnterminatedGroup(e) => {
+                write!(
+                    f,
+                    "[line {}] Unterminated Grouping.  Expect ')' after expression.",
+                    e.line
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for ParserError {}
