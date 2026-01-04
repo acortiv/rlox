@@ -14,6 +14,7 @@ pub enum RloxError {
     Io(std::io::Error),
     Scanner(ScannerError),
     Parser(ParserError),
+    Interpreter(RuntimeError),
 }
 
 impl fmt::Display for RloxError {
@@ -22,6 +23,7 @@ impl fmt::Display for RloxError {
             RloxError::Io(err) => write!(f, "IO error: {}", err),
             RloxError::Scanner(err) => write!(f, "Scanner error: {}", err),
             RloxError::Parser(err) => write!(f, "Parser error: {}", err),
+            RloxError::Interpreter(err) => write!(f, "Interpreter error: {}", err),
         }
     }
 }
@@ -105,13 +107,15 @@ impl std::error::Error for ParserError {}
 // Interpreter Errors
 #[derive(Debug)]
 pub enum RuntimeError {
-    TypeError(Token),
+    TypeError(Rc<Token>),
 }
 
 impl fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RuntimeError::TypeError =>
+            RuntimeError::TypeError(e) => {
+                write!(f, "[line {}] Incorrect type at {}.", e.line, e.lexeme)
+            }
         }
     }
 }

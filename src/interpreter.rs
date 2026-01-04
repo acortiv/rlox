@@ -1,20 +1,14 @@
 use std::rc::Rc;
 
 use crate::{
+    error::RuntimeError,
     expr::Expr,
     token::{Literal, Token, TokenType},
 };
 
 type Result = std::result::Result<RuntimeValue, RuntimeError>;
 
-#[derive(Debug)]
-pub enum RuntimeError {
-    TypeError,
-}
-
-impl std::error::Error for RuntimeError {}
-
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum RuntimeValue {
     Number(f64),
     Bool(bool),
@@ -79,8 +73,13 @@ impl Interpreter {
         let r = self.evaluate(right)?;
 
         match operator.ttype {
-            TokenType::Greater => self.apply_bin_op(l, r, |a, b| a > b),
-            TokenType::Minus => self.apply_bin_op(l, r, |a, b| a - b),
+            TokenType::Greater => self.apply_bin_op(l, r, operator, |a, b| a > b),
+            TokenType::GreaterEqual => self.apply_bin_op(l, r, operator, |a, b| a >= b),
+            TokenType::Less => self.apply_bin_op(l, r, operator, |a, b| a < b),
+            TokenType::LessEqual => self.apply_bin_op(l, r, operator, |a, b| a <= b),
+            TokenType::BangEqual => Ok(RuntimeValue::Bool(!is_equal(l, r))),
+            TokenType::EqualEqual => Ok(RuntimeValue::Bool(is_equal(l, r))),
+            TokenType::Minus => self.apply_bin_op(l, r, operator, |a, b| a - b),
             TokenType::Plus => match (l, r) {
                 (RuntimeValue::Number(l), RuntimeValue::Number(r)) => {
                     Ok(RuntimeValue::Number(l + r))
@@ -88,11 +87,11 @@ impl Interpreter {
                 (RuntimeValue::Str(l), RuntimeValue::Str(r)) => {
                     Ok(RuntimeValue::Str(format!("{l}{r}")))
                 }
-                _ => Err(RuntimeError::TypeError),
+                _ => Err(RuntimeError::TypeError(Rc::clone(operator))),
             },
-            TokenType::Slash => self.apply_bin_op(l, r, |a, b| a / b),
-            TokenType::Star => self.apply_bin_op(l, r, |a, b| a * b),
-            _ => Err(RuntimeError::TypeError),
+            TokenType::Slash => self.apply_bin_op(l, r, operator, |a, b| a / b),
+            TokenType::Star => self.apply_bin_op(l, r, operator, |a, b| a * b),
+            _ => Err(RuntimeError::TypeError(Rc::clone(operator))),
         }
     }
 
@@ -103,21 +102,27 @@ impl Interpreter {
             TokenType::Bang => Ok(RuntimeValue::Bool(!r.is_truthy())),
             TokenType::Minus => {
                 let RuntimeValue::Number(r_) = r else {
-                    return Err(RuntimeError::TypeError);
+                    return Err(RuntimeError::TypeError(Rc::clone(operator)));
                 };
                 Ok(RuntimeValue::Number(-r_))
             }
-            _ => Err(RuntimeError::TypeError),
+            _ => Err(RuntimeError::TypeError(Rc::clone(operator))),
         }
     }
 
-    fn apply_bin_op<F, R>(&self, a: RuntimeValue, b: RuntimeValue, f: F) -> Result
+    fn apply_bin_op<F, R>(
+        &self,
+        a: RuntimeValue,
+        b: RuntimeValue,
+        operator: &Rc<Token>,
+        f: F,
+    ) -> Result
     where
         F: Fn(f64, f64) -> R,
         R: Into<RuntimeValue>,
     {
         let (RuntimeValue::Number(l), RuntimeValue::Number(r)) = (a, b) else {
-            return Err(RuntimeError::TypeError);
+            return Err(RuntimeError::TypeError(Rc::clone(operator)));
         };
 
         Ok(f(l, r).into())
