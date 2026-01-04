@@ -50,7 +50,7 @@ pub enum TokenType {
     EOF,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Literal {
     Identifier(String),
     Str(String),

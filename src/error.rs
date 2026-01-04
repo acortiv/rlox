@@ -1,5 +1,6 @@
 use std::fmt;
 use std::num::ParseFloatError;
+use std::rc::Rc;
 
 use crate::token::Token;
 
@@ -78,8 +79,8 @@ impl From<ParseFloatError> for ScannerError {
 // Parser Error
 #[derive(Debug)]
 pub enum ParserError {
-    UnexpectedToken(Token),
-    UnterminatedGroup(Token),
+    UnexpectedToken(Rc<Token>),
+    UnterminatedGroup(Rc<Token>),
 }
 
 impl fmt::Display for ParserError {
@@ -100,3 +101,19 @@ impl fmt::Display for ParserError {
 }
 
 impl std::error::Error for ParserError {}
+
+// Interpreter Errors
+#[derive(Debug)]
+pub enum RuntimeError {
+    TypeError(Token),
+}
+
+impl fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RuntimeError::TypeError =>
+        }
+    }
+}
+
+impl std::error::Error for RuntimeError {}

@@ -1,17 +1,17 @@
 use crate::token::{Literal, Token};
-use std::fmt;
+use std::{fmt, rc::Rc};
 
 #[derive(Clone, Debug)]
 pub enum Expr {
     Binary {
         left: Box<Expr>,
-        operator: Token,
+        operator: Rc<Token>,
         right: Box<Expr>,
     },
     Grouping(Box<Expr>),
     Literal(Literal),
     Unary {
-        operator: Token,
+        operator: Rc<Token>,
         right: Box<Expr>,
     },
 }
