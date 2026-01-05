@@ -46,11 +46,31 @@ fn is_equal(a: RuntimeValue, b: RuntimeValue) -> bool {
     }
 }
 
+fn stringify_lox(value: &RuntimeValue) -> String {
+    match value {
+        RuntimeValue::Nil => "Nil".to_string(),
+        RuntimeValue::Bool(bool) => bool.to_string(),
+        RuntimeValue::Number(num) => {
+            let mut s = num.to_string();
+            if s.ends_with(".0") {
+                s.truncate(s.len() - 2);
+            }
+            s
+        }
+        RuntimeValue::Str(str) => str.clone(),
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Interpreter {}
 
 impl Interpreter {
-    pub fn evaluate(&self, expr: &Expr) -> Result {
+    pub fn interpret(&self, expr: &Expr) -> std::result::Result<String, RuntimeError> {
+        let value = self.evaluate(expr)?;
+        Ok(stringify_lox(&value))
+    }
+
+    fn evaluate(&self, expr: &Expr) -> Result {
         match expr {
             Expr::Binary {
                 left,

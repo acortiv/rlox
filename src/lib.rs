@@ -4,7 +4,9 @@ pub mod interpreter;
 pub mod parser;
 pub mod scanner;
 pub mod token;
-use crate::{error::RloxError, expr::pretty_expr, parser::Parser, scanner::Scanner};
+use crate::{
+    error::RloxError, expr::pretty_expr, interpreter::Interpreter, parser::Parser, scanner::Scanner,
+};
 use std::fs;
 
 pub fn run_file(path: &str) -> Result<(), RloxError> {
@@ -44,5 +46,12 @@ fn run(source: String) -> Result<bool, RloxError> {
     };
 
     println!("{}", pretty_expr(&expr, 0));
+
+    let intr = Interpreter {};
+    let Ok(value) = intr.interpret(&expr) else {
+        return Ok(false);
+    };
+    println!("{value}");
+
     Ok(true)
 }
