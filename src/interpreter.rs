@@ -38,10 +38,10 @@ impl From<bool> for RuntimeValue {
     }
 }
 
-fn is_equal(a: RuntimeValue, b: RuntimeValue) -> bool {
-    match (&a, &b) {
+fn is_equal(a: &RuntimeValue, b: &RuntimeValue) -> bool {
+    match (a, b) {
         (RuntimeValue::Nil, RuntimeValue::Nil) => return true,
-        (RuntimeValue::Nil, _) => return false,
+        (RuntimeValue::Nil, _) | (_, RuntimeValue::Nil) => return false,
         _ => a == b,
     }
 }
@@ -61,8 +61,8 @@ fn stringify_lox(value: &RuntimeValue) -> String {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Interpreter {}
+#[derive(Clone, Debug, Default)]
+pub struct Interpreter;
 
 impl Interpreter {
     pub fn interpret(&self, expr: &Expr) -> Result<String> {
@@ -97,8 +97,8 @@ impl Interpreter {
             TokenType::GreaterEqual => self.apply_bin_op(l, r, operator, |a, b| a >= b),
             TokenType::Less => self.apply_bin_op(l, r, operator, |a, b| a < b),
             TokenType::LessEqual => self.apply_bin_op(l, r, operator, |a, b| a <= b),
-            TokenType::BangEqual => Ok(RuntimeValue::Bool(!is_equal(l, r))),
-            TokenType::EqualEqual => Ok(RuntimeValue::Bool(is_equal(l, r))),
+            TokenType::BangEqual => Ok(RuntimeValue::Bool(!is_equal(&l, &r))),
+            TokenType::EqualEqual => Ok(RuntimeValue::Bool(is_equal(&l, &r))),
             TokenType::Minus => self.apply_bin_op(l, r, operator, |a, b| a - b),
             TokenType::Plus => match (l, r) {
                 (RuntimeValue::Number(l), RuntimeValue::Number(r)) => {
