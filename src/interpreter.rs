@@ -107,6 +107,14 @@ impl Interpreter {
                 (RuntimeValue::Str(l), RuntimeValue::Str(r)) => {
                     Ok(RuntimeValue::Str(format!("{l}{r}")))
                 }
+                (RuntimeValue::Str(l), RuntimeValue::Number(r)) => {
+                    let s = r.to_string();
+                    Ok(RuntimeValue::Str(format!("{l}{s}")))
+                }
+                (RuntimeValue::Number(l), RuntimeValue::Str(r)) => {
+                    let s = l.to_string();
+                    Ok(RuntimeValue::Str(format!("{s}{r}")))
+                }
                 _ => {
                     let err = RuntimeError::TypeError(Rc::clone(operator));
                     report(&err);
