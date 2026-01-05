@@ -42,10 +42,11 @@ pub fn run_prompt() -> Result<(), RloxError> {
 
 fn run(source: String) -> Result<bool, RloxError> {
     let tokens = Scanner::new(source).scan_tokens()?;
-    // let Some(expr) = Parser::new(tokens).parse() else {
-    //     return Ok(false);
-    // };
+    let Ok(_) = Parser::new(tokens).parse() else {
+        return Ok(false);
+    };
 
+    // Removed as .parse() now returns Vec<stmts>
     // println!("{}", pretty_expr(&expr, 0));
 
     // let intr = Interpreter;
