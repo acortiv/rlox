@@ -113,7 +113,7 @@ impl Interpreter {
                     return Err(err);
                 }
             },
-            TokenType::Slash => self.apply_bin_op(l, r, operator, |a, b| a / b),
+            TokenType::Slash => self.div(l, r, operator),
             TokenType::Star => self.apply_bin_op(l, r, operator, |a, b| a * b),
             _ => {
                 let err = RuntimeError::TypeError(Rc::clone(operator));
@@ -142,6 +142,22 @@ impl Interpreter {
                 return Err(err);
             }
         }
+    }
+
+    fn div(&self, a: RuntimeValue, b: RuntimeValue, operator: &Rc<Token>) -> Result<RuntimeValue> {
+        let (RuntimeValue::Number(l), RuntimeValue::Number(r)) = (a, b) else {
+            let err = RuntimeError::TypeError(Rc::clone(operator));
+            report(&err);
+            return Err(err);
+        };
+
+        if r == 0.0 || !r.is_finite() {
+            let err = RuntimeError::DivByZero(Rc::clone(operator));
+            report(&err);
+            return Err(err);
+        }
+
+        Ok(RuntimeValue::Number(l / r))
     }
 
     fn apply_bin_op<F, R>(

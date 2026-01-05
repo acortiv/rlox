@@ -108,6 +108,7 @@ impl std::error::Error for ParserError {}
 #[derive(Debug)]
 pub enum RuntimeError {
     TypeError(Rc<Token>),
+    DivByZero(Rc<Token>),
 }
 
 impl fmt::Display for RuntimeError {
@@ -115,6 +116,9 @@ impl fmt::Display for RuntimeError {
         match self {
             RuntimeError::TypeError(e) => {
                 write!(f, "[line {}] Incorrect type at {}.", e.line, e.lexeme)
+            }
+            RuntimeError::DivByZero(e) => {
+                write!(f, "[line {}] Unable to divide by 0.", e.line)
             }
         }
     }
