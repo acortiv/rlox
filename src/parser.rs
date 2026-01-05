@@ -32,10 +32,6 @@ impl Parser {
         Ok(statements)
     }
 
-    fn expression(&mut self) -> Result<Expr> {
-        self.equality()
-    }
-
     fn statement(&mut self) -> Result<Stmt> {
         if self.match_token(&[TokenType::Print]) {
             return Ok(self.print_statement()?);
@@ -54,6 +50,9 @@ impl Parser {
         let value = self.expression()?;
         self.consume(TokenType::Semicolon)?;
         Ok(Stmt::Expression(Box::new(value)))
+    }
+    fn expression(&mut self) -> Result<Expr> {
+        self.equality()
     }
 
     fn equality(&mut self) -> Result<Expr> {
