@@ -3,6 +3,7 @@ use std::rc::Rc;
 use crate::{
     error::{ParserError, report},
     expr::Expr,
+    stmt::Stmt,
     token::{Literal, Token, TokenType},
 };
 
@@ -22,16 +23,37 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Option<Expr> {
-        let Ok(expr) = self.expression() else {
-            return None;
-        };
+    pub fn parse(&mut self) -> Result<Vec<Stmt>> {
+        let mut statements: Vec<Stmt> = vec![];
+        while !self.is_at_end() {
+            statements.push(self.statement()?);
+        }
 
-        Some(expr)
+        Ok(statements)
     }
 
     fn expression(&mut self) -> Result<Expr> {
         self.equality()
+    }
+
+    fn statement(&mut self) -> Result<Stmt> {
+        if self.match_token(&[TokenType::Print]) {
+            return Ok(self.print_statement()?);
+        }
+
+        Ok(self.expression_statement()?)
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt> {
+        let value = self.expression()?;
+        self.consume(TokenType::Semicolon)?;
+        Ok(Stmt::Print(Box::new(value)))
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt> {
+        let value = self.expression()?;
+        self.consume(TokenType::Semicolon)?;
+        Ok(Stmt::Expression(Box::new(value)))
     }
 
     fn equality(&mut self) -> Result<Expr> {

@@ -3,6 +3,7 @@ pub mod expr;
 pub mod interpreter;
 pub mod parser;
 pub mod scanner;
+pub mod stmt;
 pub mod token;
 use crate::{
     error::RloxError, expr::pretty_expr, interpreter::Interpreter, parser::Parser, scanner::Scanner,
@@ -41,17 +42,17 @@ pub fn run_prompt() -> Result<(), RloxError> {
 
 fn run(source: String) -> Result<bool, RloxError> {
     let tokens = Scanner::new(source).scan_tokens()?;
-    let Some(expr) = Parser::new(tokens).parse() else {
-        return Ok(false);
-    };
+    // let Some(expr) = Parser::new(tokens).parse() else {
+    //     return Ok(false);
+    // };
 
-    println!("{}", pretty_expr(&expr, 0));
+    // println!("{}", pretty_expr(&expr, 0));
 
-    let intr = Interpreter;
-    let Ok(value) = intr.interpret(&expr) else {
-        return Ok(false);
-    };
-    println!("{value}");
+    // let intr = Interpreter;
+    // let Ok(value) = intr.interpret(&expr) else {
+    //     return Ok(false);
+    // };
+    // println!("{value}");
 
     Ok(true)
 }
