@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{fmt, rc::Rc};
 
 use crate::{
     error::{RuntimeError, report},
@@ -38,6 +38,23 @@ impl From<bool> for RuntimeValue {
     }
 }
 
+impl fmt::Display for RuntimeValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RuntimeValue::Nil => write!(f, "nil"),
+            RuntimeValue::Bool(bool) => write!(f, "{bool}"),
+            RuntimeValue::Number(num) => {
+                let mut s = num.to_string();
+                if s.ends_with(".0") {
+                    s.truncate(s.len() - 2);
+                }
+                write!(f, "{s}")
+            }
+            RuntimeValue::Str(str) => write!(f, "{str}"),
+        }
+    }
+}
+
 fn is_equal(a: &RuntimeValue, b: &RuntimeValue) -> bool {
     match (a, b) {
         (RuntimeValue::Nil, RuntimeValue::Nil) => return true,
@@ -46,28 +63,12 @@ fn is_equal(a: &RuntimeValue, b: &RuntimeValue) -> bool {
     }
 }
 
-fn stringify_lox(value: &RuntimeValue) -> String {
-    match value {
-        RuntimeValue::Nil => "Nil".to_string(),
-        RuntimeValue::Bool(bool) => bool.to_string(),
-        RuntimeValue::Number(num) => {
-            let mut s = num.to_string();
-            if s.ends_with(".0") {
-                s.truncate(s.len() - 2);
-            }
-            s
-        }
-        RuntimeValue::Str(str) => str.clone(),
-    }
-}
-
 #[derive(Clone, Debug, Default)]
 pub struct Interpreter;
 
 impl Interpreter {
     pub fn interpret(&self, expr: &Expr) -> Result<String> {
-        let value = self.evaluate(expr)?;
-        Ok(stringify_lox(&value))
+        Ok(self.evaluate(&expr)?.to_string())
     }
 
     fn evaluate(&self, expr: &Expr) -> Result<RuntimeValue> {
