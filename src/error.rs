@@ -1,5 +1,6 @@
 use std::fmt;
 use std::num::ParseFloatError;
+use std::rc::Rc;
 
 use crate::token::Token;
 
@@ -13,6 +14,7 @@ pub enum RloxError {
     Io(std::io::Error),
     Scanner(ScannerError),
     Parser(ParserError),
+    Interpreter(RuntimeError),
 }
 
 impl fmt::Display for RloxError {
@@ -21,6 +23,7 @@ impl fmt::Display for RloxError {
             RloxError::Io(err) => write!(f, "IO error: {}", err),
             RloxError::Scanner(err) => write!(f, "Scanner error: {}", err),
             RloxError::Parser(err) => write!(f, "Parser error: {}", err),
+            RloxError::Interpreter(err) => write!(f, "Interpreter error: {}", err),
         }
     }
 }
@@ -78,8 +81,8 @@ impl From<ParseFloatError> for ScannerError {
 // Parser Error
 #[derive(Debug)]
 pub enum ParserError {
-    UnexpectedToken(Token),
-    UnterminatedGroup(Token),
+    UnexpectedToken(Rc<Token>),
+    UnterminatedGroup(Rc<Token>),
 }
 
 impl fmt::Display for ParserError {
@@ -100,3 +103,21 @@ impl fmt::Display for ParserError {
 }
 
 impl std::error::Error for ParserError {}
+
+// Interpreter Errors
+#[derive(Debug)]
+pub enum RuntimeError {
+    TypeError(Rc<Token>),
+}
+
+impl fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RuntimeError::TypeError(e) => {
+                write!(f, "[line {}] Incorrect type at {}.", e.line, e.lexeme)
+            }
+        }
+    }
+}
+
+impl std::error::Error for RuntimeError {}

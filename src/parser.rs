@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     error::{ParserError, report},
     expr::Expr,
@@ -8,14 +10,14 @@ type Result<T> = std::result::Result<T, ParserError>;
 
 #[derive(Clone, Debug)]
 pub struct Parser {
-    pub tokens: Vec<Token>,
+    pub tokens: Vec<Rc<Token>>,
     pub current: usize,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Self {
-            tokens: tokens,
+            tokens: tokens.into_iter().map(Rc::new).collect::<Vec<Rc<Token>>>(),
             current: 0,
         }
     }
@@ -36,7 +38,7 @@ impl Parser {
         let mut expr = self.comparison()?;
         let potential_tokens: [TokenType; 2] = [TokenType::BangEqual, TokenType::EqualEqual];
         while self.match_token(&potential_tokens) {
-            let operator = self.previous().clone();
+            let operator = Rc::clone(self.previous());
             let right = self.comparison()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -57,7 +59,7 @@ impl Parser {
             TokenType::LessEqual,
         ];
         while self.match_token(&potential_tokens) {
-            let operator = self.previous().clone();
+            let operator = Rc::clone(self.previous());
             let right = self.term()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -73,7 +75,7 @@ impl Parser {
         let mut expr = self.factor()?;
         let potential_tokens: [TokenType; 2] = [TokenType::Minus, TokenType::Plus];
         while self.match_token(&potential_tokens) {
-            let operator = self.previous().clone();
+            let operator = Rc::clone(self.previous());
             let right = self.factor()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -89,7 +91,7 @@ impl Parser {
         let mut expr = self.unary()?;
         let potential_tokens: [TokenType; 2] = [TokenType::Slash, TokenType::Star];
         while self.match_token(&potential_tokens) {
-            let operator = self.previous().clone();
+            let operator = Rc::clone(self.previous());
             let right = self.unary()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
@@ -104,7 +106,7 @@ impl Parser {
     fn unary(&mut self) -> Result<Expr> {
         let potential_tokens: [TokenType; 2] = [TokenType::Bang, TokenType::Minus];
         if self.match_token(&potential_tokens) {
-            let operator = self.previous().clone();
+            let operator = Rc::clone(self.previous());
             let right = self.unary()?;
             return Ok(Expr::Unary {
                 operator: operator,
@@ -115,7 +117,6 @@ impl Parser {
         self.primary()
     }
 
-    // TODO: Implement Error Handling.  Parser Errors being UnexpectedToken & UnterminatedGroup
     fn primary(&mut self) -> Result<Expr> {
         if self.match_token(&[TokenType::False]) {
             return Ok(Expr::Literal(Literal::Bool(false)));
@@ -145,7 +146,7 @@ impl Parser {
             return Ok(Expr::Grouping(Box::new(expr)));
         }
 
-        let err = ParserError::UnexpectedToken(self.peek().clone());
+        let err = ParserError::UnexpectedToken(Rc::clone(self.peek()));
         report(&err);
         Err(err)
     }
@@ -161,12 +162,12 @@ impl Parser {
         false
     }
 
-    fn consume(&mut self, t: TokenType) -> Result<&Token> {
+    fn consume(&mut self, t: TokenType) -> Result<Rc<Token>> {
         if self.check(t) {
-            return Ok(self.advance());
+            return Ok(Rc::clone(self.advance()));
         }
 
-        let err = ParserError::UnterminatedGroup(self.peek().clone());
+        let err = ParserError::UnterminatedGroup(Rc::clone(self.peek()));
         report(&err);
         Err(err)
     }
@@ -179,7 +180,7 @@ impl Parser {
         self.peek().ttype == t
     }
 
-    fn advance(&mut self) -> &Token {
+    fn advance(&mut self) -> &Rc<Token> {
         if !self.is_at_end() {
             self.current += 1;
         }
@@ -191,11 +192,11 @@ impl Parser {
         self.peek().ttype == TokenType::EOF
     }
 
-    fn peek(&self) -> &Token {
+    fn peek(&self) -> &Rc<Token> {
         &self.tokens[self.current]
     }
 
-    fn previous(&self) -> &Token {
+    fn previous(&self) -> &Rc<Token> {
         &self.tokens[self.current - 1]
     }
 

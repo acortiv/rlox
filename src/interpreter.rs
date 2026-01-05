@@ -1,0 +1,166 @@
+use std::rc::Rc;
+
+use crate::{
+    error::{RuntimeError, report},
+    expr::Expr,
+    token::{Literal, Token, TokenType},
+};
+
+type Result<T> = std::result::Result<T, RuntimeError>;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum RuntimeValue {
+    Number(f64),
+    Bool(bool),
+    Str(String),
+    Nil,
+}
+
+impl RuntimeValue {
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            RuntimeValue::Nil => false,
+            RuntimeValue::Bool(b) => *b,
+            _ => true,
+        }
+    }
+}
+
+impl From<f64> for RuntimeValue {
+    fn from(value: f64) -> Self {
+        RuntimeValue::Number(value)
+    }
+}
+
+impl From<bool> for RuntimeValue {
+    fn from(value: bool) -> Self {
+        RuntimeValue::Bool(value)
+    }
+}
+
+fn is_equal(a: RuntimeValue, b: RuntimeValue) -> bool {
+    match (&a, &b) {
+        (RuntimeValue::Nil, RuntimeValue::Nil) => return true,
+        (RuntimeValue::Nil, _) => return false,
+        _ => a == b,
+    }
+}
+
+fn stringify_lox(value: &RuntimeValue) -> String {
+    match value {
+        RuntimeValue::Nil => "Nil".to_string(),
+        RuntimeValue::Bool(bool) => bool.to_string(),
+        RuntimeValue::Number(num) => {
+            let mut s = num.to_string();
+            if s.ends_with(".0") {
+                s.truncate(s.len() - 2);
+            }
+            s
+        }
+        RuntimeValue::Str(str) => str.clone(),
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Interpreter {}
+
+impl Interpreter {
+    pub fn interpret(&self, expr: &Expr) -> Result<String> {
+        let value = self.evaluate(expr)?;
+        Ok(stringify_lox(&value))
+    }
+
+    fn evaluate(&self, expr: &Expr) -> Result<RuntimeValue> {
+        match expr {
+            Expr::Binary {
+                left,
+                operator,
+                right,
+            } => self.eval_binary(left, operator, right),
+            Expr::Grouping(expr) => self.evaluate(expr),
+            Expr::Unary { operator, right } => self.eval_unary(operator, right),
+            Expr::Literal(literal) => match literal {
+                Literal::Number(num) => Ok(RuntimeValue::Number(*num)),
+                Literal::Bool(bool) => Ok(RuntimeValue::Bool(*bool)),
+                Literal::Str(str) => Ok(RuntimeValue::Str(str.clone())),
+                _ => Ok(RuntimeValue::Nil),
+            },
+        }
+    }
+
+    fn eval_binary(&self, left: &Expr, operator: &Rc<Token>, right: &Expr) -> Result<RuntimeValue> {
+        let l = self.evaluate(left)?;
+        let r = self.evaluate(right)?;
+
+        match operator.ttype {
+            TokenType::Greater => self.apply_bin_op(l, r, operator, |a, b| a > b),
+            TokenType::GreaterEqual => self.apply_bin_op(l, r, operator, |a, b| a >= b),
+            TokenType::Less => self.apply_bin_op(l, r, operator, |a, b| a < b),
+            TokenType::LessEqual => self.apply_bin_op(l, r, operator, |a, b| a <= b),
+            TokenType::BangEqual => Ok(RuntimeValue::Bool(!is_equal(l, r))),
+            TokenType::EqualEqual => Ok(RuntimeValue::Bool(is_equal(l, r))),
+            TokenType::Minus => self.apply_bin_op(l, r, operator, |a, b| a - b),
+            TokenType::Plus => match (l, r) {
+                (RuntimeValue::Number(l), RuntimeValue::Number(r)) => {
+                    Ok(RuntimeValue::Number(l + r))
+                }
+                (RuntimeValue::Str(l), RuntimeValue::Str(r)) => {
+                    Ok(RuntimeValue::Str(format!("{l}{r}")))
+                }
+                _ => {
+                    let err = RuntimeError::TypeError(Rc::clone(operator));
+                    report(&err);
+                    return Err(err);
+                }
+            },
+            TokenType::Slash => self.apply_bin_op(l, r, operator, |a, b| a / b),
+            TokenType::Star => self.apply_bin_op(l, r, operator, |a, b| a * b),
+            _ => {
+                let err = RuntimeError::TypeError(Rc::clone(operator));
+                report(&err);
+                return Err(err);
+            }
+        }
+    }
+
+    fn eval_unary(&self, operator: &Rc<Token>, right: &Expr) -> Result<RuntimeValue> {
+        let r = self.evaluate(right)?;
+
+        match operator.ttype {
+            TokenType::Bang => Ok(RuntimeValue::Bool(!r.is_truthy())),
+            TokenType::Minus => {
+                let RuntimeValue::Number(r_) = r else {
+                    let err = RuntimeError::TypeError(Rc::clone(operator));
+                    report(&err);
+                    return Err(err);
+                };
+                Ok(RuntimeValue::Number(-r_))
+            }
+            _ => {
+                let err = RuntimeError::TypeError(Rc::clone(operator));
+                report(&err);
+                return Err(err);
+            }
+        }
+    }
+
+    fn apply_bin_op<F, R>(
+        &self,
+        a: RuntimeValue,
+        b: RuntimeValue,
+        operator: &Rc<Token>,
+        f: F,
+    ) -> Result<RuntimeValue>
+    where
+        F: Fn(f64, f64) -> R,
+        R: Into<RuntimeValue>,
+    {
+        let (RuntimeValue::Number(l), RuntimeValue::Number(r)) = (a, b) else {
+            let err = RuntimeError::TypeError(Rc::clone(operator));
+            report(&err);
+            return Err(err);
+        };
+
+        Ok(f(l, r).into())
+    }
+}
