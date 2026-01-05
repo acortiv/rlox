@@ -47,7 +47,7 @@ fn run(source: String) -> Result<bool, RloxError> {
 
     println!("{}", pretty_expr(&expr, 0));
 
-    let intr = Interpreter {};
+    let intr = Interpreter;
     let Ok(value) = intr.interpret(&expr) else {
         return Ok(false);
     };

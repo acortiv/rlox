@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{fmt, rc::Rc};
 
 use crate::{
     error::{RuntimeError, report},
@@ -38,36 +38,37 @@ impl From<bool> for RuntimeValue {
     }
 }
 
-fn is_equal(a: RuntimeValue, b: RuntimeValue) -> bool {
-    match (&a, &b) {
+impl fmt::Display for RuntimeValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RuntimeValue::Nil => write!(f, "nil"),
+            RuntimeValue::Bool(bool) => write!(f, "{bool}"),
+            RuntimeValue::Number(num) => {
+                let mut s = num.to_string();
+                if s.ends_with(".0") {
+                    s.truncate(s.len() - 2);
+                }
+                write!(f, "{s}")
+            }
+            RuntimeValue::Str(str) => write!(f, "{str}"),
+        }
+    }
+}
+
+fn is_equal(a: &RuntimeValue, b: &RuntimeValue) -> bool {
+    match (a, b) {
         (RuntimeValue::Nil, RuntimeValue::Nil) => return true,
-        (RuntimeValue::Nil, _) => return false,
+        (RuntimeValue::Nil, _) | (_, RuntimeValue::Nil) => return false,
         _ => a == b,
     }
 }
 
-fn stringify_lox(value: &RuntimeValue) -> String {
-    match value {
-        RuntimeValue::Nil => "Nil".to_string(),
-        RuntimeValue::Bool(bool) => bool.to_string(),
-        RuntimeValue::Number(num) => {
-            let mut s = num.to_string();
-            if s.ends_with(".0") {
-                s.truncate(s.len() - 2);
-            }
-            s
-        }
-        RuntimeValue::Str(str) => str.clone(),
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Interpreter {}
+#[derive(Clone, Debug, Default)]
+pub struct Interpreter;
 
 impl Interpreter {
     pub fn interpret(&self, expr: &Expr) -> Result<String> {
-        let value = self.evaluate(expr)?;
-        Ok(stringify_lox(&value))
+        Ok(self.evaluate(&expr)?.to_string())
     }
 
     fn evaluate(&self, expr: &Expr) -> Result<RuntimeValue> {
@@ -97,8 +98,8 @@ impl Interpreter {
             TokenType::GreaterEqual => self.apply_bin_op(l, r, operator, |a, b| a >= b),
             TokenType::Less => self.apply_bin_op(l, r, operator, |a, b| a < b),
             TokenType::LessEqual => self.apply_bin_op(l, r, operator, |a, b| a <= b),
-            TokenType::BangEqual => Ok(RuntimeValue::Bool(!is_equal(l, r))),
-            TokenType::EqualEqual => Ok(RuntimeValue::Bool(is_equal(l, r))),
+            TokenType::BangEqual => Ok(RuntimeValue::Bool(!is_equal(&l, &r))),
+            TokenType::EqualEqual => Ok(RuntimeValue::Bool(is_equal(&l, &r))),
             TokenType::Minus => self.apply_bin_op(l, r, operator, |a, b| a - b),
             TokenType::Plus => match (l, r) {
                 (RuntimeValue::Number(l), RuntimeValue::Number(r)) => {
@@ -107,13 +108,21 @@ impl Interpreter {
                 (RuntimeValue::Str(l), RuntimeValue::Str(r)) => {
                     Ok(RuntimeValue::Str(format!("{l}{r}")))
                 }
+                (RuntimeValue::Str(l), RuntimeValue::Number(r)) => {
+                    let s = r.to_string();
+                    Ok(RuntimeValue::Str(format!("{l}{s}")))
+                }
+                (RuntimeValue::Number(l), RuntimeValue::Str(r)) => {
+                    let s = l.to_string();
+                    Ok(RuntimeValue::Str(format!("{s}{r}")))
+                }
                 _ => {
                     let err = RuntimeError::TypeError(Rc::clone(operator));
                     report(&err);
                     return Err(err);
                 }
             },
-            TokenType::Slash => self.apply_bin_op(l, r, operator, |a, b| a / b),
+            TokenType::Slash => self.div(l, r, operator),
             TokenType::Star => self.apply_bin_op(l, r, operator, |a, b| a * b),
             _ => {
                 let err = RuntimeError::TypeError(Rc::clone(operator));
@@ -142,6 +151,22 @@ impl Interpreter {
                 return Err(err);
             }
         }
+    }
+
+    fn div(&self, a: RuntimeValue, b: RuntimeValue, operator: &Rc<Token>) -> Result<RuntimeValue> {
+        let (RuntimeValue::Number(l), RuntimeValue::Number(r)) = (a, b) else {
+            let err = RuntimeError::TypeError(Rc::clone(operator));
+            report(&err);
+            return Err(err);
+        };
+
+        if r == 0.0 || !r.is_finite() {
+            let err = RuntimeError::DivByZero(Rc::clone(operator));
+            report(&err);
+            return Err(err);
+        }
+
+        Ok(RuntimeValue::Number(l / r))
     }
 
     fn apply_bin_op<F, R>(
