@@ -83,6 +83,7 @@ impl From<ParseFloatError> for ScannerError {
 pub enum ParserError {
     UnexpectedToken(Rc<Token>),
     UnterminatedGroup(Rc<Token>),
+    UnterminatedStmt(Rc<Token>),
 }
 
 impl fmt::Display for ParserError {
@@ -95,6 +96,13 @@ impl fmt::Display for ParserError {
                 write!(
                     f,
                     "[line {}] Unterminated Grouping.  Expect ')' after expression.",
+                    e.line
+                )
+            }
+            ParserError::UnterminatedStmt(e) => {
+                write!(
+                    f,
+                    "[line {}] Unterminated Statement.  Expect ';' after statement.",
                     e.line
                 )
             }

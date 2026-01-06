@@ -3,6 +3,7 @@ use std::{fmt, rc::Rc};
 use crate::{
     error::{RuntimeError, report},
     expr::Expr,
+    stmt::Stmt,
     token::{Literal, Token, TokenType},
 };
 
@@ -67,8 +68,20 @@ fn is_equal(a: &RuntimeValue, b: &RuntimeValue) -> bool {
 pub struct Interpreter;
 
 impl Interpreter {
-    pub fn interpret(&self, expr: &Expr) -> Result<String> {
-        Ok(self.evaluate(&expr)?.to_string())
+    pub fn interpret(&self, stmts: Vec<Stmt>) -> Result<()> {
+        for stmt in stmts {
+            let s = self.execute(&stmt)?;
+            println!("{}", s);
+        }
+
+        Ok(())
+    }
+
+    fn execute(&self, stmt: &Stmt) -> Result<String> {
+        match stmt {
+            Stmt::Expression(e) => Ok(self.evaluate(e)?.to_string()),
+            Stmt::Print(e) => Ok(self.evaluate(e)?.to_string()),
+        }
     }
 
     fn evaluate(&self, expr: &Expr) -> Result<RuntimeValue> {

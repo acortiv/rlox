@@ -163,7 +163,7 @@ impl Parser {
 
         if self.match_token(&[TokenType::LeftParen]) {
             let expr = self.expression()?;
-            let _ = self.consume(TokenType::RightParen)?;
+            self.consume(TokenType::RightParen)?;
             return Ok(Expr::Grouping(Box::new(expr)));
         }
 
@@ -174,7 +174,7 @@ impl Parser {
 
     fn match_token(&mut self, types: &[TokenType]) -> bool {
         for &t in types {
-            if self.check(t) {
+            if self.check(&t) {
                 self.advance();
                 return true;
             }
@@ -184,21 +184,32 @@ impl Parser {
     }
 
     fn consume(&mut self, t: TokenType) -> Result<Rc<Token>> {
-        if self.check(t) {
+        if self.check(&t) {
             return Ok(Rc::clone(self.advance()));
         }
 
-        let err = ParserError::UnterminatedGroup(Rc::clone(self.peek()));
+        let TokenType::Semicolon = t else {
+            let err = ParserError::UnterminatedGroup(Rc::clone(self.peek()));
+            report(&err);
+            return Err(err);
+        };
+
+        let token = if self.current > 0 {
+            Rc::clone(self.previous())
+        } else {
+            Rc::clone(self.peek())
+        };
+        let err = ParserError::UnterminatedStmt(token);
         report(&err);
         Err(err)
     }
 
-    fn check(&self, t: TokenType) -> bool {
+    fn check(&self, t: &TokenType) -> bool {
         if self.is_at_end() {
             return false;
         }
 
-        self.peek().ttype == t
+        self.peek().ttype == *t
     }
 
     fn advance(&mut self) -> &Rc<Token> {
