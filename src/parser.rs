@@ -26,10 +26,30 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Vec<Stmt>> {
         let mut statements: Vec<Stmt> = vec![];
         while !self.is_at_end() {
-            statements.push(self.statement()?);
+            if let Some(stmt) = self.declaration()? {
+                statements.push(stmt);
+            }
         }
 
         Ok(statements)
+    }
+
+    fn declaration(&mut self) -> Result<Option<Stmt>> {
+        if self.match_token(&[TokenType::Var]) {
+            let Ok(vd) = self.var_declaration() else {
+                self.synchronize();
+                return Ok(None);
+            };
+
+            return Ok(Some(vd));
+        } else {
+            let Ok(s) = self.statement() else {
+                self.synchronize();
+                return Ok(None);
+            };
+
+            return Ok(Some(s));
+        }
     }
 
     fn statement(&mut self) -> Result<Stmt> {
@@ -45,6 +65,11 @@ impl Parser {
         self.consume(TokenType::Semicolon)?;
         Ok(Stmt::Print(Box::new(value)))
     }
+
+    // fn var_declaration(&mut self) -> Result<Stmt> {
+    //     let token = self.consume(TokenType::Identifier)?;
+    //     // TODO: Think through just a plain variable declaration, no value initialized.... (Do I create a new token with a literal value of nil, lexeme of an empty string, and line == self.line?.. Questions Questions)
+    // }
 
     fn expression_statement(&mut self) -> Result<Stmt> {
         let value = self.expression()?;
@@ -188,6 +213,7 @@ impl Parser {
             return Ok(Rc::clone(self.advance()));
         }
 
+        // TODO: Refactor to Match for Error Handling (Semicolon, Expected Variable After Declaration, Grouping)
         let TokenType::Semicolon = t else {
             let err = ParserError::UnterminatedGroup(Rc::clone(self.peek()));
             report(&err);
@@ -232,26 +258,26 @@ impl Parser {
         &self.tokens[self.current - 1]
     }
 
-    // fn synchronize(&mut self) {
-    //     self.advance();
-    //     while !self.is_at_end() {
-    //         if self.previous().ttype == TokenType::Semicolon {
-    //             return;
-    //         }
+    fn synchronize(&mut self) {
+        self.advance();
+        while !self.is_at_end() {
+            if self.previous().ttype == TokenType::Semicolon {
+                return;
+            }
 
-    //         match self.peek().ttype {
-    //             TokenType::Class
-    //             | TokenType::For
-    //             | TokenType::Fun
-    //             | TokenType::If
-    //             | TokenType::Print
-    //             | TokenType::Return
-    //             | TokenType::While
-    //             | TokenType::Var => return,
-    //             _ => {}
-    //         }
+            match self.peek().ttype {
+                TokenType::Class
+                | TokenType::For
+                | TokenType::Fun
+                | TokenType::If
+                | TokenType::Print
+                | TokenType::Return
+                | TokenType::While
+                | TokenType::Var => return,
+                _ => {}
+            }
 
-    //         self.advance();
-    //     }
-    // }
+            self.advance();
+        }
+    }
 }

@@ -10,6 +10,7 @@ pub enum Expr {
     },
     Grouping(Box<Expr>),
     Literal(Literal),
+    Variable(Rc<Token>),
     Unary {
         operator: Rc<Token>,
         right: Box<Expr>,
@@ -28,6 +29,7 @@ impl fmt::Display for Expr {
             }
             Expr::Grouping(expr) => write!(f, "(group {})", expr),
             Expr::Literal(literal) => write!(f, "{literal}"),
+            Expr::Variable(var) => write!(f, "{var}"),
             Expr::Unary { operator, right } => {
                 write!(f, "({}, {})", operator, right)
             }
@@ -84,6 +86,7 @@ pub fn pretty_expr(expr: &Expr, indent: usize) -> String {
             )
         }
         Expr::Literal(literal) => format!("{}Literal{}", pad, literal),
+        Expr::Variable(var) => format!("{}Variable{}", pad, var),
         Expr::Unary { operator, right } => {
             format!(
                 "{}Unary({})\n{}",
