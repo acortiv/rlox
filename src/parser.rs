@@ -66,10 +66,18 @@ impl Parser {
         Ok(Stmt::Print(Box::new(value)))
     }
 
-    // fn var_declaration(&mut self) -> Result<Stmt> {
-    //     let token = self.consume(TokenType::Identifier)?;
-    //     // TODO: Think through just a plain variable declaration, no value initialized.... (Do I create a new token with a literal value of nil, lexeme of an empty string, and line == self.line?.. Questions Questions)
-    // }
+    fn var_declaration(&mut self) -> Result<Stmt> {
+        let name = self.consume(TokenType::Identifier)?;
+
+        let initializer: Option<Box<Expr>> = if self.match_token(&[TokenType::Equal]) {
+            Some(Box::new(self.expression()?))
+        } else {
+            None
+        };
+
+        self.consume(TokenType::Semicolon);
+        Ok(Stmt::Var { name, initializer })
+    }
 
     fn expression_statement(&mut self) -> Result<Stmt> {
         let value = self.expression()?;
@@ -184,6 +192,14 @@ impl Parser {
                 return Ok(Expr::Literal(Literal::Str(s.clone())));
             }
             unreachable!("String token without string literal.")
+        }
+
+        if self.match_token(&[TokenType::Identifier]) {
+            if let Literal::Identifier(_) = &self.previous().literal {
+                return Ok(Expr::Variable(Rc::clone(self.previous())));
+            }
+
+            unreachable!("")
         }
 
         if self.match_token(&[TokenType::LeftParen]) {
