@@ -117,6 +117,7 @@ impl std::error::Error for ParserError {}
 pub enum RuntimeError {
     TypeError(Rc<Token>),
     DivByZero(Rc<Token>),
+    UndefinedVariable(Rc<Token>),
 }
 
 impl fmt::Display for RuntimeError {
@@ -127,6 +128,9 @@ impl fmt::Display for RuntimeError {
             }
             RuntimeError::DivByZero(e) => {
                 write!(f, "[line {}] Unable to divide by 0.", e.line)
+            }
+            RuntimeError::UndefinedVariable(e) => {
+                write!(f, "[line {}] Undefined variable {}", e.line, e.lexeme)
             }
         }
     }
