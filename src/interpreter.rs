@@ -1,6 +1,7 @@
-use std::{fmt, rc::Rc};
+use std::{cell::RefCell, fmt, rc::Rc};
 
 use crate::{
+    env::Environment,
     error::{RuntimeError, report},
     expr::Expr,
     stmt::Stmt,
@@ -65,7 +66,9 @@ fn is_equal(a: &RuntimeValue, b: &RuntimeValue) -> bool {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct Interpreter;
+pub struct Interpreter {
+    rlox_env: Environment,
+}
 
 impl Interpreter {
     pub fn interpret(&self, stmts: Vec<Stmt>) -> Result<()> {
@@ -77,10 +80,25 @@ impl Interpreter {
         Ok(())
     }
 
-    fn execute(&self, stmt: &Stmt) -> Result<String> {
+    fn execute(&mut self, stmt: &Stmt) -> Result<Option<String>> {
         match stmt {
-            Stmt::Expression(e) => Ok(self.evaluate(e)?.to_string()),
-            Stmt::Print(e) => Ok(self.evaluate(e)?.to_string()),
+            Stmt::Expression(e) => Ok(Some(self.evaluate(e)?.to_string())),
+            Stmt::Print(e) => Ok(Some(self.evaluate(e)?.to_string())),
+            Stmt::Var { name, initializer } => {
+                let value = if let Some(init) = initializer {
+                    Some(self.evaluate(init)?)
+                } else {
+                    None
+                };
+
+                let value_ = if let Some(value) = value {
+                    Some(Rc::new(RefCell::new(value)))
+                } else {
+                    None
+                };
+                self.rlox_env.define(name.lexeme.clone(), value_);
+                Ok(None)
+            }
         }
     }
 
