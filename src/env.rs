@@ -1,6 +1,5 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
 use crate::{error::RuntimeError, interpreter::RuntimeValue, token::Token};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Clone, Debug, Default)]
 pub struct Environment {
@@ -15,10 +14,13 @@ impl Environment {
             .replace(value)
     }
 
-    pub fn get(&self, name: &Rc<Token>) -> Result<Rc<RefCell<Option<RuntimeValue>>>, RuntimeError> {
-        self.values
+    pub fn get(&self, name: &Rc<Token>) -> Result<RuntimeValue, RuntimeError> {
+        let cell = self
+            .values
             .get(&name.lexeme)
             .cloned()
-            .ok_or_else(|| RuntimeError::UndefinedVariable(name.clone()))
+            .ok_or_else(|| RuntimeError::UndefinedVariable(name.clone()))?;
+
+        Ok(cell.borrow().clone().unwrap_or(RuntimeValue::Nil))
     }
 }

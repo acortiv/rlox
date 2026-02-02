@@ -112,6 +112,7 @@ impl Interpreter {
                 Literal::Str(str) => Ok(RuntimeValue::Str(str.clone())),
                 _ => Ok(RuntimeValue::Nil),
             },
+            Expr::Variable(var) => self.rlox_env.get(var),
         }
     }
 
