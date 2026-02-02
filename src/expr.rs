@@ -3,6 +3,10 @@ use std::{fmt, rc::Rc};
 
 #[derive(Clone, Debug)]
 pub enum Expr {
+    Assign {
+        name: Rc<Token>,
+        value: Box<Expr>,
+    },
     Binary {
         left: Box<Expr>,
         operator: Rc<Token>,
@@ -20,6 +24,7 @@ pub enum Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Expr::Assign { name, value } => write!(f, "(name: {name}, value: {value})"),
             Expr::Binary {
                 left,
                 operator,

@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    error::{ParserError, report},
+    error::{ParserError, RuntimeError, report},
     expr::Expr,
     stmt::Stmt,
     token::{Literal, Token, TokenType},
@@ -85,7 +85,29 @@ impl Parser {
         Ok(Stmt::Expression(Box::new(value)))
     }
     fn expression(&mut self) -> Result<Expr> {
-        self.equality()
+        // self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr> {
+        let expr = self.equality()?;
+        if self.match_token(&[TokenType::Equal]) {
+            let equals = self.previous().clone();
+            let value = self.assignment()?;
+
+            if let Expr::Variable(name) = expr {
+                return Ok(Expr::Assign {
+                    name,
+                    value: Box::new(value),
+                });
+            };
+
+            // TODO: Implement new error -- Invalid Assignment Target
+            let err = ParserError::UnexpectedToken(equals);
+            report(&err);
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr> {
@@ -196,7 +218,7 @@ impl Parser {
 
         if self.match_token(&[TokenType::Identifier]) {
             if let Literal::Identifier(_) = &self.previous().literal {
-                return Ok(Expr::Variable(Rc::clone(self.previous())));
+                return Ok(Expr::Variable(self.previous().clone()));
             }
 
             unreachable!("")

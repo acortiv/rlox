@@ -89,7 +89,6 @@ impl Interpreter {
                     .as_ref()
                     .map(|init| self.evaluate(init))
                     .transpose()?;
-                // .map(|v| Rc::new(RefCell::new(v)));
 
                 self.rlox_env.define(name.lexeme.clone(), value);
                 Ok(None)
@@ -99,6 +98,7 @@ impl Interpreter {
 
     fn evaluate(&self, expr: &Expr) -> Result<RuntimeValue> {
         match expr {
+            Expr::Assignment { name, value } => Ok(RuntimeValue::Nil),
             Expr::Binary {
                 left,
                 operator,
