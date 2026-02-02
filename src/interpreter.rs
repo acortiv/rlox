@@ -71,10 +71,10 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    pub fn interpret(&self, stmts: Vec<Stmt>) -> Result<()> {
+    pub fn interpret(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for stmt in stmts {
-            let s = self.execute(&stmt)?;
-            println!("{}", s);
+            self.execute(&stmt)?;
+            // println!("{}", s);
         }
 
         Ok(())
@@ -85,18 +85,13 @@ impl Interpreter {
             Stmt::Expression(e) => Ok(Some(self.evaluate(e)?.to_string())),
             Stmt::Print(e) => Ok(Some(self.evaluate(e)?.to_string())),
             Stmt::Var { name, initializer } => {
-                let value = if let Some(init) = initializer {
-                    Some(self.evaluate(init)?)
-                } else {
-                    None
-                };
+                let value = initializer
+                    .as_ref()
+                    .map(|init| self.evaluate(init))
+                    .transpose()?;
+                // .map(|v| Rc::new(RefCell::new(v)));
 
-                let value_ = if let Some(value) = value {
-                    Some(Rc::new(RefCell::new(value)))
-                } else {
-                    None
-                };
-                self.rlox_env.define(name.lexeme.clone(), value_);
+                self.rlox_env.define(name.lexeme.clone(), value);
                 Ok(None)
             }
         }

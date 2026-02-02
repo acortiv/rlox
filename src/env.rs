@@ -8,17 +8,17 @@ pub struct Environment {
 }
 
 impl Environment {
-    pub fn define(&mut self, name: String, value: Option<RuntimeValue>) {
+    pub fn define(&mut self, name: String, value: Option<RuntimeValue>) -> Option<RuntimeValue> {
         self.values
             .entry(name)
             .or_insert_with(|| Rc::new(RefCell::new(None)))
-            .replace(value);
+            .replace(value)
     }
 
-    pub fn get(&self, name: &Rc<Token>) -> Result<Option<Rc<RefCell<RuntimeValue>>>, RuntimeError> {
+    pub fn get(&self, name: &Rc<Token>) -> Result<Rc<RefCell<Option<RuntimeValue>>>, RuntimeError> {
         self.values
             .get(&name.lexeme)
             .cloned()
-            .ok_or_else(|| RuntimeError::UndefinedVariable(Rc::e(name)))
+            .ok_or_else(|| RuntimeError::UndefinedVariable(name.clone()))
     }
 }
