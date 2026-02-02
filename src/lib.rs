@@ -46,7 +46,8 @@ fn run(source: String) -> Result<bool, RloxError> {
         return Ok(false);
     };
 
-    let Ok(_) = Interpreter.interpret(stmts) else {
+    let mut interpreter = Interpreter::default();
+    let Ok(_) = interpreter.interpret(stmts) else {
         return Ok(false);
     };
 

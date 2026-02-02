@@ -75,7 +75,7 @@ impl Parser {
             None
         };
 
-        self.consume(TokenType::Semicolon);
+        let _ = self.consume(TokenType::Semicolon);
         Ok(Stmt::Var { name, initializer })
     }
 
