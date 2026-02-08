@@ -83,6 +83,7 @@ impl From<ParseFloatError> for ScannerError {
 pub enum ParserError {
     UnexpectedToken(Rc<Token>),
     UnterminatedGroup(Rc<Token>),
+    UnterminatedStmt(Rc<Token>),
 }
 
 impl fmt::Display for ParserError {
@@ -98,6 +99,13 @@ impl fmt::Display for ParserError {
                     e.line
                 )
             }
+            ParserError::UnterminatedStmt(e) => {
+                write!(
+                    f,
+                    "[line {}] Unterminated Statement.  Expect ';' after statement.",
+                    e.line
+                )
+            }
         }
     }
 }
@@ -109,6 +117,7 @@ impl std::error::Error for ParserError {}
 pub enum RuntimeError {
     TypeError(Rc<Token>),
     DivByZero(Rc<Token>),
+    UndefinedVariable(Rc<Token>),
 }
 
 impl fmt::Display for RuntimeError {
@@ -119,6 +128,9 @@ impl fmt::Display for RuntimeError {
             }
             RuntimeError::DivByZero(e) => {
                 write!(f, "[line {}] Unable to divide by 0.", e.line)
+            }
+            RuntimeError::UndefinedVariable(e) => {
+                write!(f, "[line {}] Undefined variable {}", e.line, e.lexeme)
             }
         }
     }

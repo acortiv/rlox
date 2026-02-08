@@ -3,6 +3,10 @@ use std::{fmt, rc::Rc};
 
 #[derive(Clone, Debug)]
 pub enum Expr {
+    Assign {
+        name: Rc<Token>,
+        value: Box<Expr>,
+    },
     Binary {
         left: Box<Expr>,
         operator: Rc<Token>,
@@ -10,6 +14,7 @@ pub enum Expr {
     },
     Grouping(Box<Expr>),
     Literal(Literal),
+    Variable(Rc<Token>),
     Unary {
         operator: Rc<Token>,
         right: Box<Expr>,
@@ -19,6 +24,7 @@ pub enum Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Expr::Assign { name, value } => write!(f, "(name: {name}, value: {value})"),
             Expr::Binary {
                 left,
                 operator,
@@ -28,6 +34,7 @@ impl fmt::Display for Expr {
             }
             Expr::Grouping(expr) => write!(f, "(group {})", expr),
             Expr::Literal(literal) => write!(f, "{literal}"),
+            Expr::Variable(var) => write!(f, "{var}"),
             Expr::Unary { operator, right } => {
                 write!(f, "({}, {})", operator, right)
             }
@@ -84,6 +91,7 @@ pub fn pretty_expr(expr: &Expr, indent: usize) -> String {
             )
         }
         Expr::Literal(literal) => format!("{}Literal{}", pad, literal),
+        Expr::Variable(var) => format!("{}Variable{}", pad, var),
         Expr::Unary { operator, right } => {
             format!(
                 "{}Unary({})\n{}",
@@ -93,5 +101,12 @@ pub fn pretty_expr(expr: &Expr, indent: usize) -> String {
             )
         }
         Expr::Grouping(inner) => format!("{}Group\n{}", pad, pretty_expr(inner, indent + 1)),
+        Expr::Assign { name, value } => {
+            let value_str = pretty_expr(value, indent + 2);
+            format!(
+                "{}Assign\n{}Name: {}\n{}Value:\n{}",
+                pad, pad, name.lexeme, pad, value_str
+            )
+        }
     }
 }

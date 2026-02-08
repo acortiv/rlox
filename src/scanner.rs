@@ -226,7 +226,7 @@ impl Scanner {
         if let Some(token_type) = keyword_capture(text) {
             self.add_token(token_type)
         } else {
-            self.add_token(TokenType::Identifier)
+            self.add_token_prime(TokenType::Identifier, Literal::Identifier(text.to_string()))
         }
     }
 

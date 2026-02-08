@@ -1,8 +1,10 @@
-use std::{fmt, rc::Rc};
+use std::{cell::RefCell, fmt, rc::Rc};
 
 use crate::{
+    env::Environment,
     error::{RuntimeError, report},
     expr::Expr,
+    stmt::Stmt,
     token::{Literal, Token, TokenType},
 };
 
@@ -64,15 +66,59 @@ fn is_equal(a: &RuntimeValue, b: &RuntimeValue) -> bool {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct Interpreter;
+pub struct Interpreter {
+    rlox_env: Rc<RefCell<Environment>>,
+}
 
 impl Interpreter {
-    pub fn interpret(&self, expr: &Expr) -> Result<String> {
-        Ok(self.evaluate(&expr)?.to_string())
+    pub fn interpret(&mut self, stmts: Vec<Stmt>) -> Result<()> {
+        for stmt in stmts {
+            if let Stmt::Print(e) = stmt {
+                let output = self.evaluate(&e)?;
+                println!("{output}")
+            } else {
+                self.execute(&stmt)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn execute(&mut self, stmt: &Stmt) -> Result<Option<String>> {
+        match stmt {
+            Stmt::Expression(e) => Ok(Some(self.evaluate(e)?.to_string())),
+            Stmt::Print(e) => Ok(Some(self.evaluate(e)?.to_string())),
+            Stmt::Var { name, initializer } => {
+                let value = initializer
+                    .as_ref()
+                    .map(|init| self.evaluate(init))
+                    .transpose()?;
+
+                self.rlox_env
+                    .borrow_mut()
+                    .define(name.lexeme.clone(), value);
+                Ok(None)
+            }
+            Stmt::Block(stmts) => {
+                let prev = self.rlox_env.clone();
+                self.rlox_env = Environment::new_from(prev.clone());
+
+                for stmt in stmts {
+                    self.execute(stmt)?;
+                }
+
+                self.rlox_env = prev;
+                Ok(None)
+            }
+        }
     }
 
     fn evaluate(&self, expr: &Expr) -> Result<RuntimeValue> {
         match expr {
+            Expr::Assign { name, value } => {
+                let v = self.evaluate(value)?;
+                self.rlox_env.borrow().assign(name, v)
+            }
             Expr::Binary {
                 left,
                 operator,
@@ -86,6 +132,7 @@ impl Interpreter {
                 Literal::Str(str) => Ok(RuntimeValue::Str(str.clone())),
                 _ => Ok(RuntimeValue::Nil),
             },
+            Expr::Variable(var) => self.rlox_env.borrow().get(var),
         }
     }
 

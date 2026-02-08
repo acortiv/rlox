@@ -1,12 +1,12 @@
+pub mod env;
 pub mod error;
 pub mod expr;
 pub mod interpreter;
 pub mod parser;
 pub mod scanner;
+pub mod stmt;
 pub mod token;
-use crate::{
-    error::RloxError, expr::pretty_expr, interpreter::Interpreter, parser::Parser, scanner::Scanner,
-};
+use crate::{error::RloxError, interpreter::Interpreter, parser::Parser, scanner::Scanner};
 use std::fs;
 
 pub fn run_file(path: &str) -> Result<(), RloxError> {
@@ -22,6 +22,8 @@ pub fn run_file(path: &str) -> Result<(), RloxError> {
 pub fn run_prompt() -> Result<(), RloxError> {
     use std::io::{self, Write};
 
+    let mut interpreter = Interpreter::default();
+
     loop {
         print!("> ");
         io::stdout().flush()?;
@@ -31,9 +33,29 @@ pub fn run_prompt() -> Result<(), RloxError> {
             break;
         }
 
-        if let Err(err) = run(line) {
-            eprintln!("{err}");
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let tokens = match Scanner::new(line.clone()).scan_tokens() {
+            Ok(tokens) => tokens,
+            Err(err) => {
+                eprintln!("{err}");
+                continue;
+            }
         };
+
+        let stmts = match Parser::new(tokens).parse() {
+            Ok(stmts) => stmts,
+            Err(err) => {
+                eprintln!("{err}");
+                continue;
+            }
+        };
+
+        if let Err(err) = interpreter.interpret(stmts) {
+            eprintln!("{err}");
+        }
     }
 
     Ok(())
@@ -41,17 +63,15 @@ pub fn run_prompt() -> Result<(), RloxError> {
 
 fn run(source: String) -> Result<bool, RloxError> {
     let tokens = Scanner::new(source).scan_tokens()?;
-    let Some(expr) = Parser::new(tokens).parse() else {
+
+    let Ok(stmts) = Parser::new(tokens).parse() else {
         return Ok(false);
     };
 
-    println!("{}", pretty_expr(&expr, 0));
-
-    let intr = Interpreter;
-    let Ok(value) = intr.interpret(&expr) else {
+    let mut interpreter = Interpreter::default();
+    let Ok(_) = interpreter.interpret(stmts) else {
         return Ok(false);
     };
-    println!("{value}");
 
     Ok(true)
 }

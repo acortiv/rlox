@@ -3,6 +3,7 @@ use std::rc::Rc;
 use crate::{
     error::{ParserError, report},
     expr::Expr,
+    stmt::Stmt,
     token::{Literal, Token, TokenType},
 };
 
@@ -22,16 +23,110 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Option<Expr> {
-        let Ok(expr) = self.expression() else {
-            return None;
+    pub fn parse(&mut self) -> Result<Vec<Stmt>> {
+        let mut statements: Vec<Stmt> = vec![];
+        while !self.is_at_end() {
+            if let Some(stmt) = self.declaration()? {
+                statements.push(stmt);
+            }
+        }
+
+        Ok(statements)
+    }
+
+    fn declaration(&mut self) -> Result<Option<Stmt>> {
+        if self.match_token(&[TokenType::Var]) {
+            let Ok(vd) = self.var_declaration() else {
+                self.synchronize();
+                return Ok(None);
+            };
+
+            return Ok(Some(vd));
+        } else {
+            let Ok(s) = self.statement() else {
+                self.synchronize();
+                return Ok(None);
+            };
+
+            return Ok(Some(s));
+        }
+    }
+
+    fn statement(&mut self) -> Result<Stmt> {
+        if self.match_token(&[TokenType::Print]) {
+            return Ok(self.print_statement()?);
+        }
+
+        if self.match_token(&[TokenType::LeftBrace]) {
+            let stmts = self.block()?;
+            return Ok(Stmt::Block(stmts));
+        }
+
+        Ok(self.expression_statement()?)
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt> {
+        let value = self.expression()?;
+        self.consume(TokenType::Semicolon)?;
+        Ok(Stmt::Print(Box::new(value)))
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt> {
+        let name = self.consume(TokenType::Identifier)?;
+
+        let initializer: Option<Box<Expr>> = if self.match_token(&[TokenType::Equal]) {
+            Some(Box::new(self.expression()?))
+        } else {
+            None
         };
 
-        Some(expr)
+        let _ = self.consume(TokenType::Semicolon);
+        Ok(Stmt::Var { name, initializer })
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt> {
+        let value = self.expression()?;
+        self.consume(TokenType::Semicolon)?;
+        Ok(Stmt::Expression(Box::new(value)))
     }
 
     fn expression(&mut self) -> Result<Expr> {
-        self.equality()
+        // self.equality()
+        self.assignment()
+    }
+
+    fn block(&mut self) -> Result<Vec<Stmt>> {
+        let mut statements = Vec::new();
+
+        while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
+            if let Some(stmt) = self.declaration()? {
+                statements.push(stmt);
+            }
+        }
+
+        self.consume(TokenType::RightBrace)?;
+        Ok(statements)
+    }
+
+    fn assignment(&mut self) -> Result<Expr> {
+        let expr = self.equality()?;
+        if self.match_token(&[TokenType::Equal]) {
+            let equals = self.previous().clone();
+            let value = self.assignment()?;
+
+            if let Expr::Variable(name) = expr {
+                return Ok(Expr::Assign {
+                    name,
+                    value: Box::new(value),
+                });
+            };
+
+            // TODO: Implement new error -- Invalid Assignment Target
+            let err = ParserError::UnexpectedToken(equals);
+            report(&err);
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr> {
@@ -140,9 +235,17 @@ impl Parser {
             unreachable!("String token without string literal.")
         }
 
+        if self.match_token(&[TokenType::Identifier]) {
+            if let Literal::Identifier(_) = &self.previous().literal {
+                return Ok(Expr::Variable(self.previous().clone()));
+            }
+
+            unreachable!("")
+        }
+
         if self.match_token(&[TokenType::LeftParen]) {
             let expr = self.expression()?;
-            let _ = self.consume(TokenType::RightParen)?;
+            self.consume(TokenType::RightParen)?;
             return Ok(Expr::Grouping(Box::new(expr)));
         }
 
@@ -153,7 +256,7 @@ impl Parser {
 
     fn match_token(&mut self, types: &[TokenType]) -> bool {
         for &t in types {
-            if self.check(t) {
+            if self.check(&t) {
                 self.advance();
                 return true;
             }
@@ -163,21 +266,33 @@ impl Parser {
     }
 
     fn consume(&mut self, t: TokenType) -> Result<Rc<Token>> {
-        if self.check(t) {
+        if self.check(&t) {
             return Ok(Rc::clone(self.advance()));
         }
 
-        let err = ParserError::UnterminatedGroup(Rc::clone(self.peek()));
+        // TODO: Refactor to Match for Error Handling (Semicolon, Expected Variable After Declaration, Grouping)
+        let TokenType::Semicolon = t else {
+            let err = ParserError::UnterminatedGroup(Rc::clone(self.peek()));
+            report(&err);
+            return Err(err);
+        };
+
+        let token = if self.current > 0 {
+            Rc::clone(self.previous())
+        } else {
+            Rc::clone(self.peek())
+        };
+        let err = ParserError::UnterminatedStmt(token);
         report(&err);
         Err(err)
     }
 
-    fn check(&self, t: TokenType) -> bool {
+    fn check(&self, t: &TokenType) -> bool {
         if self.is_at_end() {
             return false;
         }
 
-        self.peek().ttype == t
+        self.peek().ttype == *t
     }
 
     fn advance(&mut self) -> &Rc<Token> {
@@ -200,26 +315,26 @@ impl Parser {
         &self.tokens[self.current - 1]
     }
 
-    // fn synchronize(&mut self) {
-    //     self.advance();
-    //     while !self.is_at_end() {
-    //         if self.previous().ttype == TokenType::Semicolon {
-    //             return;
-    //         }
+    fn synchronize(&mut self) {
+        self.advance();
+        while !self.is_at_end() {
+            if self.previous().ttype == TokenType::Semicolon {
+                return;
+            }
 
-    //         match self.peek().ttype {
-    //             TokenType::Class
-    //             | TokenType::For
-    //             | TokenType::Fun
-    //             | TokenType::If
-    //             | TokenType::Print
-    //             | TokenType::Return
-    //             | TokenType::While
-    //             | TokenType::Var => return,
-    //             _ => {}
-    //         }
+            match self.peek().ttype {
+                TokenType::Class
+                | TokenType::For
+                | TokenType::Fun
+                | TokenType::If
+                | TokenType::Print
+                | TokenType::Return
+                | TokenType::While
+                | TokenType::Var => return,
+                _ => {}
+            }
 
-    //         self.advance();
-    //     }
-    // }
+            self.advance();
+        }
+    }
 }
