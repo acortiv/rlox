@@ -101,5 +101,12 @@ pub fn pretty_expr(expr: &Expr, indent: usize) -> String {
             )
         }
         Expr::Grouping(inner) => format!("{}Group\n{}", pad, pretty_expr(inner, indent + 1)),
+        Expr::Assign { name, value } => {
+            let value_str = pretty_expr(value, indent + 2);
+            format!(
+                "{}Assign\n{}Name: {}\n{}Value:\n{}",
+                pad, pad, name.lexeme, pad, value_str
+            )
+        }
     }
 }

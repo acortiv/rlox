@@ -10,6 +10,7 @@ pub enum Stmt {
         name: Rc<Token>,
         initializer: Option<Box<Expr>>,
     },
+    Block(Vec<Stmt>),
 }
 
 impl fmt::Display for Stmt {
@@ -24,6 +25,7 @@ impl fmt::Display for Stmt {
                     write!(f, "Token: {name}, Initializer: None")
                 }
             }
+            Stmt::Block(stmts) => write!(f, "Statements: {:?}", stmts),
         }
     }
 }

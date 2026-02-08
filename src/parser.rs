@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    error::{ParserError, RuntimeError, report},
+    error::{ParserError, report},
     expr::Expr,
     stmt::Stmt,
     token::{Literal, Token, TokenType},
@@ -57,6 +57,11 @@ impl Parser {
             return Ok(self.print_statement()?);
         }
 
+        if self.match_token(&[TokenType::LeftBrace]) {
+            let stmts = self.block()?;
+            return Ok(Stmt::Block(stmts));
+        }
+
         Ok(self.expression_statement()?)
     }
 
@@ -84,9 +89,23 @@ impl Parser {
         self.consume(TokenType::Semicolon)?;
         Ok(Stmt::Expression(Box::new(value)))
     }
+
     fn expression(&mut self) -> Result<Expr> {
         // self.equality()
         self.assignment()
+    }
+
+    fn block(&mut self) -> Result<Vec<Stmt>> {
+        let mut statements = Vec::new();
+
+        while self.check(&TokenType::RightBrace) && !self.is_at_end() {
+            if let Some(stmt) = self.declaration()? {
+                statements.push(stmt);
+            }
+        }
+
+        self.consume(TokenType::RightBrace)?;
+        Ok(statements)
     }
 
     fn assignment(&mut self) -> Result<Expr> {

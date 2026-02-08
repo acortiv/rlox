@@ -1,4 +1,4 @@
-use std::{fmt, rc::Rc};
+use std::{cell::RefCell, fmt, rc::Rc};
 
 use crate::{
     env::Environment,
@@ -67,7 +67,7 @@ fn is_equal(a: &RuntimeValue, b: &RuntimeValue) -> bool {
 
 #[derive(Clone, Debug, Default)]
 pub struct Interpreter {
-    rlox_env: Environment,
+    rlox_env: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
@@ -90,7 +90,20 @@ impl Interpreter {
                     .map(|init| self.evaluate(init))
                     .transpose()?;
 
-                self.rlox_env.define(name.lexeme.clone(), value);
+                self.rlox_env
+                    .borrow_mut()
+                    .define(name.lexeme.clone(), value);
+                Ok(None)
+            }
+            Stmt::Block(stmts) => {
+                let prev = self.rlox_env.clone();
+                self.rlox_env = Environment::new_from(prev.clone());
+
+                for stmt in stmts {
+                    self.execute(stmt)?;
+                }
+
+                self.rlox_env = prev;
                 Ok(None)
             }
         }
@@ -98,7 +111,10 @@ impl Interpreter {
 
     fn evaluate(&self, expr: &Expr) -> Result<RuntimeValue> {
         match expr {
-            Expr::Assignment { name, value } => Ok(RuntimeValue::Nil),
+            Expr::Assign { name, value } => {
+                let v = self.evaluate(value)?;
+                self.rlox_env.borrow().assign(name, v)
+            }
             Expr::Binary {
                 left,
                 operator,
@@ -112,7 +128,7 @@ impl Interpreter {
                 Literal::Str(str) => Ok(RuntimeValue::Str(str.clone())),
                 _ => Ok(RuntimeValue::Nil),
             },
-            Expr::Variable(var) => self.rlox_env.get(var),
+            Expr::Variable(var) => self.rlox_env.borrow().get(var),
         }
     }
 
