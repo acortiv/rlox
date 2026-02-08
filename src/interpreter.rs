@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt, rc::Rc};
+use std::{cell::RefCell, fmt, process::Output, rc::Rc};
 
 use crate::{
     env::Environment,
@@ -73,11 +73,8 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn interpret(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for stmt in stmts {
-            if let Stmt::Print(e) = stmt {
-                let output = self.evaluate(&e)?;
-                println!("{output}")
-            } else {
-                self.execute(&stmt)?;
+            if let Some(output) = self.execute(&stmt)? {
+                println!("{}", output);
             }
         }
 
