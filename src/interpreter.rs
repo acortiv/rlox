@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt, process::Output, rc::Rc};
+use std::{cell::RefCell, fmt, rc::Rc};
 
 use crate::{
     env::Environment,
