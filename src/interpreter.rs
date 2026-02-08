@@ -73,8 +73,12 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn interpret(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for stmt in stmts {
-            let s = self.execute(&stmt)?;
-            println!("{}", s.unwrap_or(String::new()));
+            if let Stmt::Print(e) = stmt {
+                let output = self.evaluate(&e)?;
+                println!("{output}")
+            } else {
+                self.execute(&stmt)?;
+            }
         }
 
         Ok(())

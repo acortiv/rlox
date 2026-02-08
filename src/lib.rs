@@ -22,6 +22,8 @@ pub fn run_file(path: &str) -> Result<(), RloxError> {
 pub fn run_prompt() -> Result<(), RloxError> {
     use std::io::{self, Write};
 
+    let mut interpreter = Interpreter::default();
+
     loop {
         print!("> ");
         io::stdout().flush()?;
@@ -31,9 +33,29 @@ pub fn run_prompt() -> Result<(), RloxError> {
             break;
         }
 
-        if let Err(err) = run(line) {
-            eprintln!("{err}");
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let tokens = match Scanner::new(line.clone()).scan_tokens() {
+            Ok(tokens) => tokens,
+            Err(err) => {
+                eprintln!("{err}");
+                continue;
+            }
         };
+
+        let stmts = match Parser::new(tokens).parse() {
+            Ok(stmts) => stmts,
+            Err(err) => {
+                eprintln!("{err}");
+                continue;
+            }
+        };
+
+        if let Err(err) = interpreter.interpret(stmts) {
+            eprintln!("{err}");
+        }
     }
 
     Ok(())
