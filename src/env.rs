@@ -23,4 +23,14 @@ impl Environment {
 
         Ok(cell.borrow().clone().unwrap_or(RuntimeValue::Nil))
     }
+
+    pub fn assign(&mut self, name: &Rc<Token>, value: RuntimeValue) -> Result<(), RuntimeError> {
+        let cell = self
+            .values
+            .get(&name.lexeme)
+            .ok_or_else(|| RuntimeError::UndefinedVariable(name.clone()))?;
+
+        *cell.borrow_mut() = Some(value);
+        Ok(())
+    }
 }
