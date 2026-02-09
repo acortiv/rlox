@@ -73,28 +73,33 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn interpret(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for stmt in stmts {
-            if let Some(output) = self.execute(&stmt)? {
-                println!("{}", output);
-            }
+            self.execute(&stmt)?;
         }
 
         Ok(())
     }
 
-    fn execute(&mut self, stmt: &Stmt) -> Result<Option<String>> {
+    fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
-            Stmt::Expression(e) => Ok(Some(self.evaluate(e)?.to_string())),
-            Stmt::Print(e) => Ok(Some(self.evaluate(e)?.to_string())),
+            Stmt::Expression(e) => {
+                self.evaluate(e)?;
+                Ok(())
+            }
+            Stmt::Print(e) => {
+                let value = self.evaluate(e)?;
+                println!("{}", value);
+                Ok(())
+            }
             Stmt::Var { name, initializer } => {
-                let value = initializer
-                    .as_ref()
-                    .map(|init| self.evaluate(init))
-                    .transpose()?;
+                let value = match initializer {
+                    Some(v) => self.evaluate(v)?,
+                    None => RuntimeValue::Nil,
+                };
 
                 self.rlox_env
                     .borrow_mut()
                     .define(name.lexeme.clone(), value);
-                Ok(None)
+                Ok(())
             }
             Stmt::Block(stmts) => {
                 let prev = self.rlox_env.clone();
@@ -105,7 +110,7 @@ impl Interpreter {
                 }
 
                 self.rlox_env = prev;
-                Ok(None)
+                Ok(())
             }
         }
     }

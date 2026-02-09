@@ -74,7 +74,7 @@ impl Parser {
     fn var_declaration(&mut self) -> Result<Stmt> {
         let name = self.consume(TokenType::Identifier)?;
 
-        let initializer: Option<Box<Expr>> = if self.match_token(&[TokenType::Equal]) {
+        let initializer = if self.match_token(&[TokenType::Equal]) {
             Some(Box::new(self.expression()?))
         } else {
             None
