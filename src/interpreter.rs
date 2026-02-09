@@ -1,5 +1,3 @@
-use std::{cell::RefCell, fmt, rc::Rc};
-
 use crate::{
     env::Environment,
     error::{RuntimeError, report},
@@ -7,6 +5,7 @@ use crate::{
     stmt::Stmt,
     token::{Literal, Token, TokenType},
 };
+use std::{cell::RefCell, fmt, rc::Rc};
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
