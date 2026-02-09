@@ -214,7 +214,7 @@ impl Scanner {
     }
 
     fn is_digit(&self, c: u8) -> bool {
-        (b'0'..=b'9').contains(&c)
+        c.is_ascii_digit()
     }
 
     fn parse_identifier(&mut self) -> Result<()> {
