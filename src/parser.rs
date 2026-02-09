@@ -52,6 +52,19 @@ impl Parser {
         }
     }
 
+    fn var_declaration(&mut self) -> Result<Stmt> {
+        let name = self.consume(TokenType::Identifier)?;
+
+        let initializer = if self.match_token(&[TokenType::Equal]) {
+            Some(Box::new(self.expression()?))
+        } else {
+            None
+        };
+
+        let _ = self.consume(TokenType::Semicolon);
+        Ok(Stmt::Var { name, initializer })
+    }
+
     fn statement(&mut self) -> Result<Stmt> {
         if self.match_token(&[TokenType::Print]) {
             return Ok(self.print_statement()?);
@@ -71,30 +84,6 @@ impl Parser {
         Ok(Stmt::Print(Box::new(value)))
     }
 
-    fn var_declaration(&mut self) -> Result<Stmt> {
-        let name = self.consume(TokenType::Identifier)?;
-
-        let initializer = if self.match_token(&[TokenType::Equal]) {
-            Some(Box::new(self.expression()?))
-        } else {
-            None
-        };
-
-        let _ = self.consume(TokenType::Semicolon);
-        Ok(Stmt::Var { name, initializer })
-    }
-
-    fn expression_statement(&mut self) -> Result<Stmt> {
-        let value = self.expression()?;
-        self.consume(TokenType::Semicolon)?;
-        Ok(Stmt::Expression(Box::new(value)))
-    }
-
-    fn expression(&mut self) -> Result<Expr> {
-        // self.equality()
-        self.assignment()
-    }
-
     fn block(&mut self) -> Result<Vec<Stmt>> {
         let mut statements = Vec::new();
 
@@ -106,6 +95,17 @@ impl Parser {
 
         self.consume(TokenType::RightBrace)?;
         Ok(statements)
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt> {
+        let value = self.expression()?;
+        self.consume(TokenType::Semicolon)?;
+        Ok(Stmt::Expression(Box::new(value)))
+    }
+
+    fn expression(&mut self) -> Result<Expr> {
+        // self.equality()
+        self.assignment()
     }
 
     fn assignment(&mut self) -> Result<Expr> {
