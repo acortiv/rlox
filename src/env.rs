@@ -4,7 +4,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 #[derive(Clone, Debug, Default)]
 pub struct Environment {
     enclosing: Option<Rc<RefCell<Environment>>>,
-    values: HashMap<String, Rc<RefCell<Option<RuntimeValue>>>>,
+    values: HashMap<String, Rc<RefCell<RuntimeValue>>>,
 }
 
 impl Environment {
@@ -22,16 +22,17 @@ impl Environment {
         }))
     }
 
-    pub fn define(&mut self, name: String, value: Option<RuntimeValue>) -> Option<RuntimeValue> {
-        self.values
-            .entry(name)
-            .or_insert_with(|| Rc::new(RefCell::new(None)))
-            .replace(value)
+    pub fn define(
+        &mut self,
+        name: String,
+        value: RuntimeValue,
+    ) -> Option<Rc<RefCell<RuntimeValue>>> {
+        self.values.insert(name, Rc::new(RefCell::new(value)))
     }
 
     pub fn get(&self, name: &Rc<Token>) -> Result<RuntimeValue, RuntimeError> {
         if let Some(cell) = self.values.get(&name.lexeme) {
-            return Ok(cell.borrow().clone().unwrap_or(RuntimeValue::Nil));
+            return Ok(cell.borrow().clone());
         }
 
         if let Some(ref enclosing) = self.enclosing {
@@ -47,7 +48,7 @@ impl Environment {
         value: RuntimeValue,
     ) -> Result<RuntimeValue, RuntimeError> {
         if let Some(cell) = self.values.get(&name.lexeme) {
-            *cell.borrow_mut() = Some(value.clone());
+            *cell.borrow_mut() = value.clone();
             return Ok(value);
         }
 
