@@ -81,15 +81,6 @@ impl Interpreter {
 
     fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
-            Stmt::Expression(e) => {
-                self.evaluate(e)?;
-                Ok(())
-            }
-            Stmt::Print(e) => {
-                let value = self.evaluate(e)?;
-                println!("{}", value);
-                Ok(())
-            }
             Stmt::Var { name, initializer } => {
                 let value = match initializer {
                     Some(v) => self.evaluate(v)?,
@@ -101,6 +92,11 @@ impl Interpreter {
                     .define(name.lexeme.clone(), value);
                 Ok(())
             }
+            Stmt::Print(e) => {
+                let value = self.evaluate(e)?;
+                println!("{}", value);
+                Ok(())
+            }
             Stmt::Block(stmts) => {
                 let prev = self.rlox_env.clone();
                 self.rlox_env = Environment::new_from(prev.clone());
@@ -110,6 +106,10 @@ impl Interpreter {
                 }
 
                 self.rlox_env = prev;
+                Ok(())
+            }
+            Stmt::Expression(e) => {
+                self.evaluate(e)?;
                 Ok(())
             }
         }
