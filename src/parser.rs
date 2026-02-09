@@ -41,14 +41,14 @@ impl Parser {
                 return Ok(None);
             };
 
-            return Ok(Some(vd));
+            Ok(Some(vd))
         } else {
             let Ok(s) = self.statement() else {
                 self.synchronize();
                 return Ok(None);
             };
 
-            return Ok(Some(s));
+            Ok(Some(s))
         }
     }
 
@@ -67,7 +67,7 @@ impl Parser {
 
     fn statement(&mut self) -> Result<Stmt> {
         if self.match_token(&[TokenType::Print]) {
-            return Ok(self.print_statement()?);
+            return self.print_statement();
         }
 
         if self.match_token(&[TokenType::LeftBrace]) {
@@ -75,7 +75,7 @@ impl Parser {
             return Ok(Stmt::Block(stmts));
         }
 
-        Ok(self.expression_statement()?)
+        self.expression_statement()
     }
 
     fn print_statement(&mut self) -> Result<Stmt> {
@@ -137,7 +137,7 @@ impl Parser {
             let right = self.comparison()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
-                operator: operator,
+                operator,
                 right: Box::new(right),
             }
         }
@@ -158,7 +158,7 @@ impl Parser {
             let right = self.term()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
-                operator: operator,
+                operator,
                 right: Box::new(right),
             }
         }
@@ -174,7 +174,7 @@ impl Parser {
             let right = self.factor()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
-                operator: operator,
+                operator,
                 right: Box::new(right),
             }
         }
@@ -190,7 +190,7 @@ impl Parser {
             let right = self.unary()?;
             expr = Expr::Binary {
                 left: Box::new(expr),
-                operator: operator,
+                operator,
                 right: Box::new(right),
             }
         }
@@ -204,7 +204,7 @@ impl Parser {
             let operator = Rc::clone(self.previous());
             let right = self.unary()?;
             return Ok(Expr::Unary {
-                operator: operator,
+                operator,
                 right: Box::new(right),
             });
         }
