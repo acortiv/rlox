@@ -1,5 +1,3 @@
-use std::{cell::RefCell, fmt, rc::Rc};
-
 use crate::{
     env::Environment,
     error::{RuntimeError, report},
@@ -7,6 +5,7 @@ use crate::{
     stmt::Stmt,
     token::{Literal, Token, TokenType},
 };
+use std::{cell::RefCell, fmt, rc::Rc};
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
@@ -59,8 +58,8 @@ impl fmt::Display for RuntimeValue {
 
 fn is_equal(a: &RuntimeValue, b: &RuntimeValue) -> bool {
     match (a, b) {
-        (RuntimeValue::Nil, RuntimeValue::Nil) => return true,
-        (RuntimeValue::Nil, _) | (_, RuntimeValue::Nil) => return false,
+        (RuntimeValue::Nil, RuntimeValue::Nil) => true,
+        (RuntimeValue::Nil, _) | (_, RuntimeValue::Nil) => false,
         _ => a == b,
     }
 }
@@ -168,7 +167,7 @@ impl Interpreter {
                 _ => {
                     let err = RuntimeError::TypeError(Rc::clone(operator));
                     report(&err);
-                    return Err(err);
+                    Err(err)
                 }
             },
             TokenType::Slash => self.div(l, r, operator),
@@ -176,7 +175,7 @@ impl Interpreter {
             _ => {
                 let err = RuntimeError::TypeError(Rc::clone(operator));
                 report(&err);
-                return Err(err);
+                Err(err)
             }
         }
     }
@@ -197,7 +196,7 @@ impl Interpreter {
             _ => {
                 let err = RuntimeError::TypeError(Rc::clone(operator));
                 report(&err);
-                return Err(err);
+                Err(err)
             }
         }
     }

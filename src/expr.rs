@@ -67,11 +67,10 @@ impl fmt::Display for Expr {
 ///             rlox::token::Literal::Number(45.67),
 ///         )))),
 ///     };
-
+///
 /// let expr_string = pretty_expr(&expr, 0);
 /// println!("{}", expr_string);
 /// ```
-
 pub fn pretty_expr(expr: &Expr, indent: usize) -> String {
     let pad = " ".repeat(indent);
     match expr {

@@ -40,7 +40,7 @@ pub struct Scanner {
 impl Scanner {
     pub fn new(source: String) -> Self {
         Self {
-            source: source,
+            source,
             tokens: Vec::new(),
             start: 0,
             current: 0,
@@ -214,7 +214,7 @@ impl Scanner {
     }
 
     fn is_digit(&self, c: u8) -> bool {
-        c >= b'0' && c <= b'9'
+        c.is_ascii_digit()
     }
 
     fn parse_identifier(&mut self) -> Result<()> {
@@ -272,7 +272,7 @@ impl Scanner {
         self.tokens.push(Token {
             ttype: t,
             lexeme: text.to_string(),
-            literal: literal,
+            literal,
             line: self.line,
         });
 
